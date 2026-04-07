@@ -1,0 +1,32 @@
+# LUDIARS サービス定義
+# migrate.sh がこのファイルを読んで各サービスのマイグレーションを実行する。
+# サービス追加時はここにエントリを足すだけで migrate.sh を編集する必要はない。
+
+services:
+  cernere:
+    path: ../Cernere
+    database: cernere
+    user: cernere_user
+    password: cernere
+    # sql: migrations/ 配下の連番 SQL をファイル名順に実行
+    strategy: sql
+    migrations_dir: migrations
+
+  schedula:
+    path: ../Schedula
+    database: schedula
+    user: schedula_user
+    password: schedula
+    # drizzle-push: npx drizzle-kit push でスキーマ同期
+    # Schedula は Drizzle ORM のスキーマ定義が信頼元
+    strategy: drizzle-push
+    drizzle_config: drizzle.config.ts
+
+  curare:
+    path: ../Curare/curare-server
+    database: curare
+    user: curare_user
+    password: curare
+    # sql: migrations/ 配下の連番 SQL を実行
+    strategy: sql
+    migrations_dir: migrations

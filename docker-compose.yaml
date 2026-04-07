@@ -1,0 +1,51 @@
+# LUDIARS 共有インフラストラクチャ
+# Cernere / Schedula / Curare が共有する PostgreSQL / Redis / MinIO
+#
+# Usage:
+#   docker compose up -d
+#   bash migrate.sh          # 全サービスのマイグレーション一括実行
+#   bash migrate.sh cernere  # 単一サービスのみ
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: ludiars
+      POSTGRES_PASSWORD: ludiars
+      POSTGRES_DB: ludiars
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/10-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ludiars"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    command: redis-server --save 60 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: curare
+      MINIO_ROOT_PASSWORD: curare-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes: [minio-data:/data]
+
+volumes:
+  pgdata:
+  redisdata:
+  minio-data:
