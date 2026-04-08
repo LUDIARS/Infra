@@ -62,21 +62,29 @@ services:
 | `sql` | `migrations/` の連番 SQL を順番実行。`_migration_history` テーブルで適用追跡 | Cernere, Curare |
 | `drizzle-push` | `npx drizzle-kit push` でスキーマ同期。Drizzle のスキーマ定義が信頼元 | Schedula |
 
-## pgAdmin
+## 開発用 GUI ツール
 
-`http://localhost:5050` でブラウザからアクセス。
+GUI ツールは `docker-compose.dev.yaml` に分離。本番では使用しない。
 
-| 項目 | 値 |
-|------|-----|
-| URL | http://localhost:5050 |
-| Email | admin@ludiars.local |
-| Password | ludiars |
+```bash
+# インフラ + GUI ツールを起動
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+```
 
-初回ログイン後、サーバーを追加:
-- Host: `postgres` (Docker 内部ホスト名)
-- Port: `5432`
-- Username: `ludiars`
-- Password: `ludiars`
+| ツール | URL | 用途 |
+|--------|-----|------|
+| pgAdmin 4 | http://localhost:5050 | PostgreSQL 管理 |
+| RedisInsight | http://localhost:5540 | Redis 管理 |
+| MinIO Console | http://localhost:9001 | オブジェクトストレージ管理 |
+
+### pgAdmin 初回設定
+
+- Email: `admin@ludiars.local` / Password: `ludiars`
+- サーバー追加: Host=`postgres`, Port=`5432`, User=`ludiars`, Password=`ludiars`
+
+### RedisInsight 初回設定
+
+- DB 追加: Host=`redis`, Port=`6379`
 
 ## 接続情報
 
