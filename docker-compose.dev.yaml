@@ -5,22 +5,29 @@
 #   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 #
 # GUI ツール一覧:
-#   pgAdmin 4       http://localhost:5050  (PostgreSQL)
+#   pgweb            http://localhost:8081  (PostgreSQL — セッションモードで全DB切替可能)
 #   RedisInsight     http://localhost:5540  (Redis)
 #   MinIO Console    http://localhost:9001  (MinIO — 本体 compose に含まれる)
+#
+# pgweb で DB を切り替える:
+#   1. http://localhost:8081 を開く
+#   2. 右上の接続情報をクリック → "New Connection"
+#   3. Host: postgres, Port: 5432, User: ludiars, Password: ludiars, Database: cernere/curare/schedula
 
 services:
-  pgadmin:
-    image: dpage/pgadmin4
-    ports: ["5050:80"]
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@ludiars.dev
-      PGADMIN_DEFAULT_PASSWORD: ludiars
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    volumes: [pgadmin-data:/var/lib/pgadmin]
+  pgweb:
+    image: sosedoff/pgweb
+    ports: ["8081:8081"]
+    command: [
+      "/usr/bin/pgweb",
+      "--bind=0.0.0.0",
+      "--listen=8081",
+      "--sessions"
+    ]
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
 
   redisinsight:
     image: redis/redisinsight:latest
@@ -28,6 +35,3 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-
-volumes:
-  pgadmin-data:

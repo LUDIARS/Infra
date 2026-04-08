@@ -73,14 +73,18 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 
 | ツール | URL | 用途 |
 |--------|-----|------|
-| pgAdmin 4 | http://localhost:5050 | PostgreSQL 管理 |
+| pgweb | http://localhost:8081 | PostgreSQL 管理 (セッションモード — 全 DB 切替可能) |
 | RedisInsight | http://localhost:5540 | Redis 管理 |
 | MinIO Console | http://localhost:9001 | オブジェクトストレージ管理 |
 
-### pgAdmin 初回設定
+### pgweb 初回設定
 
-- Email: `admin@ludiars.dev` / Password: `ludiars`
-- サーバー追加: Host=`postgres`, Port=`5432`, User=`ludiars`, Password=`ludiars`
+http://localhost:8081 を開き、接続情報を入力:
+
+- Host: `postgres`, Port: `5432`, User: `ludiars`, Password: `ludiars`
+- Database: `cernere` / `curare` / `schedula` のいずれか
+
+DB を切り替えるには右上の接続情報 → "Disconnect" → 別の Database 名で再接続。
 
 ### RedisInsight 初回設定
 
