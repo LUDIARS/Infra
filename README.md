@@ -79,7 +79,7 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 
 ### pgAdmin 初回設定
 
-- Email: `admin@ludiars.local` / Password: `ludiars`
+- Email: `admin@ludiars.dev` / Password: `ludiars`
 - サーバー追加: Host=`postgres`, Port=`5432`, User=`ludiars`, Password=`ludiars`
 
 ### RedisInsight 初回設定
