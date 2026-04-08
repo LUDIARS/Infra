@@ -12,20 +12,30 @@ docker compose up -d
 ## マイグレーション
 
 ```bash
+# 依存インストール (初回のみ)
+npm install
+
 # 全サービスのマイグレーションを実行
-bash migrate.sh
+node migrate.mjs
 
 # 単一サービスのみ
-bash migrate.sh cernere
-bash migrate.sh schedula
-bash migrate.sh curare
+node migrate.mjs cernere
+node migrate.mjs schedula
+node migrate.mjs curare
 
 # 適用状況の確認
-bash migrate.sh --status
+node migrate.mjs --status
 
 # 実行内容のプレビュー (実行はしない)
-bash migrate.sh --dry-run
+node migrate.mjs --dry-run
+
+# npm scripts でも実行可能
+npm run migrate
+npm run migrate:status
+npm run migrate:dry-run
 ```
+
+> **Note:** `migrate.sh` (Bash 版) も残していますが、Windows では `migrate.mjs` を使用してください。
 
 ## サービス追加
 
