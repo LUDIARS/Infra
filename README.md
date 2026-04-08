@@ -62,6 +62,22 @@ services:
 | `sql` | `migrations/` の連番 SQL を順番実行。`_migration_history` テーブルで適用追跡 | Cernere, Curare |
 | `drizzle-push` | `npx drizzle-kit push` でスキーマ同期。Drizzle のスキーマ定義が信頼元 | Schedula |
 
+## pgAdmin
+
+`http://localhost:5050` でブラウザからアクセス。
+
+| 項目 | 値 |
+|------|-----|
+| URL | http://localhost:5050 |
+| Email | admin@ludiars.local |
+| Password | ludiars |
+
+初回ログイン後、サーバーを追加:
+- Host: `postgres` (Docker 内部ホスト名)
+- Port: `5432`
+- Username: `ludiars`
+- Password: `ludiars`
+
 ## 接続情報
 
 | サービス | PostgreSQL | Redis |
