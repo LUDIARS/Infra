@@ -1,10 +1,14 @@
 # LUDIARS 共有インフラストラクチャ
-# Cernere / Schedula / Curare が共有する PostgreSQL / Redis / MinIO
+# Cernere / Schedula / Curare / Nuntius が共有する
+# PostgreSQL / Redis / MinIO / MailHog
 #
 # Usage:
 #   docker compose up -d
 #   bash migrate.sh          # 全サービスのマイグレーション一括実行
 #   bash migrate.sh cernere  # 単一サービスのみ
+#
+# MailHog (dev SMTP catcher):
+#   SMTP: localhost:1025  /  Web UI: http://localhost:8025
 
 services:
   postgres:
@@ -44,6 +48,15 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes: [minio-data:/data]
+
+  # MailHog — dev SMTP キャッチャー (Cernere / Nuntius 等から利用)
+  # SMTP: 1025 / Web UI: 8025 (http://localhost:8025)
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
 
 volumes:
   pgdata:
