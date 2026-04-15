@@ -1,6 +1,6 @@
 # LUDIARS 共有インフラ
 
-Cernere / Schedula / Curare が共有する PostgreSQL / Redis / MinIO の一元管理。
+Cernere / Schedula / Curare / Nuntius が共有する PostgreSQL / Redis / MinIO / MailHog の一元管理。
 
 ## 起動
 
@@ -21,6 +21,7 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 | pgweb | http://localhost:8081 | PostgreSQL 管理 (全 DB 切替可能) |
 | RedisInsight | http://localhost:5540 | Redis 管理 |
 | MinIO Console | http://localhost:9001 | オブジェクトストレージ管理 |
+| MailHog UI | http://localhost:8025 | dev SMTP キャッチャー (送信メール確認) |
 
 ### pgweb 接続
 
