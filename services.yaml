@@ -30,3 +30,12 @@ services:
     # sql: migrations/ 配下の連番 SQL を実行
     strategy: sql
     migrations_dir: migrations
+
+  nuntius:
+    path: ../Nuntius
+    database: nuntius
+    user: nuntius_user
+    password: nuntius
+    # drizzle-push: Drizzle ORM のスキーマ定義が信頼元
+    strategy: drizzle-push
+    drizzle_config: drizzle.config.ts
