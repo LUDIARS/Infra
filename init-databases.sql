@@ -6,15 +6,18 @@
 CREATE DATABASE cernere;
 CREATE DATABASE schedula;
 CREATE DATABASE curare;
+CREATE DATABASE imperativus;
 
 -- サービス専用ユーザー (最小権限の原則)
 CREATE USER cernere_user WITH PASSWORD 'cernere';
 CREATE USER schedula_user WITH PASSWORD 'schedula';
 CREATE USER curare_user WITH PASSWORD 'curare';
+CREATE USER imperativus_user WITH PASSWORD 'imperativus';
 
 GRANT ALL PRIVILEGES ON DATABASE cernere TO cernere_user;
 GRANT ALL PRIVILEGES ON DATABASE schedula TO schedula_user;
 GRANT ALL PRIVILEGES ON DATABASE curare TO curare_user;
+GRANT ALL PRIVILEGES ON DATABASE imperativus TO imperativus_user;
 
 -- 各 DB 内で public スキーマの権限付与
 \c cernere
@@ -25,3 +28,6 @@ GRANT ALL ON SCHEMA public TO schedula_user;
 
 \c curare
 GRANT ALL ON SCHEMA public TO curare_user;
+
+\c imperativus
+GRANT ALL ON SCHEMA public TO imperativus_user;
