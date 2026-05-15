@@ -1,0 +1,115 @@
+{
+  "repo": "LUDIARS/Infra",
+  "local_path": "E:/Document/Ars/infra",
+  "review_date": "2026-05-13",
+  "reviewer": "Claude Opus 4.7 (1M context) — /ludiars-review",
+  "scope": [
+    "README.md",
+    "PORT-MAP.md",
+    "docker-compose.yaml",
+    "docker-compose.dev.yaml",
+    "services.yaml",
+    "init-databases.sql",
+    "migrate.mjs",
+    "migrate.sh",
+    "drizzle.config.ts",
+    ".env.example",
+    "package.json",
+    "schema/",
+    "scripts/rancher-migration/"
+  ],
+  "grades": {
+    "design": "B",
+    "vulnerability": "C",
+    "implementation": "B",
+    "missing_features": "C",
+    "quality": "B"
+  },
+  "weights": {
+    "design": 0.25,
+    "vulnerability": 0.30,
+    "implementation": 0.20,
+    "missing_features": 0.15,
+    "quality": 0.10
+  },
+  "weighted_score": 2.55,
+  "weighted_score_max": 4.0,
+  "overall_grade": "B-",
+  "findings_count": {
+    "design": 4,
+    "vulnerability": 6,
+    "implementation": 4,
+    "missing_features": 5,
+    "quality": 4,
+    "total": 23
+  },
+  "autofix_count": 0,
+  "autofix_pr": null,
+  "top_findings": [
+    {
+      "id": "V1",
+      "category": "vulnerability",
+      "grade": "C",
+      "title": "DB / MinIO credential が平文ハードコード",
+      "evidence": [
+        "init-databases.sql:14-19",
+        "services.yaml:9-49",
+        "docker-compose.yaml:18-19,45-46",
+        "drizzle.config.ts:16-18"
+      ]
+    },
+    {
+      "id": "V2",
+      "category": "vulnerability",
+      "grade": "C",
+      "title": "全 port が 0.0.0.0 暗黙 bind で LAN 公開",
+      "evidence": [
+        "docker-compose.yaml:16,32,48-49,57-59",
+        "docker-compose.dev.yaml:20,34"
+      ]
+    },
+    {
+      "id": "V6",
+      "category": "vulnerability",
+      "grade": "C",
+      "title": "Redis に AUTH 無し",
+      "evidence": ["docker-compose.yaml:30-39"]
+    },
+    {
+      "id": "D2",
+      "category": "design",
+      "grade": "B",
+      "title": "PORT-MAP 既知の 9001 衝突が compose 側で未解消",
+      "evidence": ["PORT-MAP.md:56,68-70", "docker-compose.yaml:48-49"]
+    },
+    {
+      "id": "M1",
+      "category": "missing_features",
+      "grade": "C",
+      "title": "定期 backup / restore 手段が無い (SPOF)",
+      "evidence": ["docker-compose.yaml:65-68", "scripts/rancher-migration/README.md"]
+    },
+    {
+      "id": "I1",
+      "category": "implementation",
+      "grade": "B",
+      "title": "migrate.mjs の statement split が pl/pgsql で破綻し得る",
+      "evidence": ["migrate.mjs:148-164"]
+    }
+  ],
+  "files_written": [
+    "review/2026-05-13/REVIEW.md",
+    "review/2026-05-13/REVIEW_DESIGN.md",
+    "review/2026-05-13/REVIEW_VULNERABILITY.md",
+    "review/2026-05-13/REVIEW_IMPLEMENTATION.md",
+    "review/2026-05-13/REVIEW_MISSING_FEATURES.md",
+    "review/2026-05-13/REVIEW_QUALITY.md",
+    "review/2026-05-13/AUTOFIX.md",
+    "review/2026-05-13/latest.json"
+  ],
+  "rules": {
+    "source_modification": "forbidden",
+    "secret_values_read": "forbidden",
+    "autofix_listing_only": true
+  }
+}
