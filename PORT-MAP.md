@@ -2,7 +2,7 @@
 
 LUDIARS 全サービスのホスト側 port 割り当て表。**同一ホストで複数サービスを並行起動しても衝突しない**ことを保証するための単一情報源。
 
-最終更新: 2026-05-17 (Excubitor 機能を Concordia に集約、 Excubitor は obsolete)
+最終更新: 2026-05-17 (Excubitor 機能を Concordia に集約、 Excubitor は obsolete。 旧 17331 を Concordia web に再割当)
 
 ---
 
@@ -57,9 +57,9 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Signum | **3200** | SIGNUM_PORT | 3200 | コンテンツ署名 |
 | Signum web | **8083** | SIGNUM_WEB_PORT | 80 | |
 | Concordia backend | **17330** | CONCORDIA_PORT | 17330 | multi-agent coordinator + サービス可観測性 + auto-fix (旧 Excubitor 統合)。loopback only |
-| Concordia web | **17333** | (vite.config) | 17333 | Concordia フロントエンド (loopback only) |
-| ~~Excubitor backend~~ | ~~17331~~ | - | - | **obsolete (2026-05-17)**。 機能は Concordia に統合。 17331/17332 は将来再利用可 |
-| ~~Excubitor web~~ | ~~17332~~ | - | - | **obsolete (2026-05-17)** |
+| Concordia web | **17331** | (vite.config) | 17331 | Concordia フロントエンド (loopback only)。旧 Excubitor backend を継承 |
+| ~~Excubitor backend~~ | ~~17331~~ | - | - | **obsolete (2026-05-17)** → port は Concordia web が継承 |
+| ~~Excubitor web~~ | ~~17332~~ | - | - | **obsolete (2026-05-17)**。17332 と 17333 は空き |
 | Custos | **17777** | (要確認) | 17777 | テストランナー |
 | Quaestor backend | **17400** | QUAESTOR_PORT | 17400 | 個人会計 (loopback only) |
 | Susurrus core | **17370** | SUSURRUS_LOCAL_PORT | 17370 | チャット daemon (loopback only) |
