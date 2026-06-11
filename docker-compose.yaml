@@ -13,7 +13,9 @@
 services:
   postgres:
     image: postgres:17-alpine
-    ports: ["5432:5432"]
+    # host 公開は loopback 限定。"5432:5432" は 0.0.0.0 公開となり、弱い既定
+    # 資格情報のまま LAN へ露出する (CWE-668)。LAN 共有が要る場合は Tailscale 経由。
+    ports: ["127.0.0.1:5432:5432"]
     environment:
       POSTGRES_USER: ludiars
       POSTGRES_PASSWORD: ludiars
@@ -29,7 +31,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    # Redis は認証なし。loopback 限定で公開し LAN 露出を防ぐ (CWE-668)。
+    ports: ["127.0.0.1:6379:6379"]
     volumes: [redisdata:/data]
     command: redis-server --save 60 1
     healthcheck:
@@ -44,18 +47,20 @@ services:
     environment:
       MINIO_ROOT_USER: curare
       MINIO_ROOT_PASSWORD: curare-secret
+    # MinIO の API/console も loopback 限定 (既定資格情報のまま LAN 露出を防ぐ)。
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes: [minio-data:/data]
 
   # MailHog — dev SMTP キャッチャー (Cernere / Nuntius 等から利用)
   # SMTP: 1025 / Web UI: 8025 (http://localhost:8025)
   mailhog:
     image: mailhog/mailhog:latest
+    # dev SMTP キャッチャーも loopback 限定 (LAN に開ける必要はない)。
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
     restart: unless-stopped
 
 volumes:
