@@ -64,6 +64,7 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Quaestor backend | **17400** | QUAESTOR_PORT | 17400 | 個人会計 (loopback only) |
 | Susurrus core | **17370** | SUSURRUS_LOCAL_PORT | 17370 | チャット daemon (loopback only) |
 | Bibliotheca | **17501** | BIBLIOTHECA_PORT | 17501 | 本 / 機材 貸出台帳 (loopback only)。17500 は Dropbox LAN sync が squat |
+| Ostiarius | **17590** | OSTIARIUS_PORT | 17590 | 会場 LAN チェックインゲートウェイ (passkey assertion オフライン検証 + attestation 署名、Aedilis 出席チェックインの会場側) |
 | Memoria | (Tauri デスクトップ) | - | - | host bind なし |
 | Calicula | (Tauri デスクトップ) | - | - | host bind なし |
 | Hora | (Tauri デスクトップ) | - | - | host bind なし |
