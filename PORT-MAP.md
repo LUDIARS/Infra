@@ -49,6 +49,7 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Schedula frontend | 8486 | FRONTEND_PORT | 5173/80 | |
 | Actio backend | **8888** | BACKEND_PORT | 3000 | 予定 + タスク |
 | Actio frontend | **8486** | FRONTEND_PORT | 5173/80 | Actio admin/SPA |
+| Praeforma | **8889** | PRAEFORMA_PORT | 8889 | 仕様書 ↔ 実装連携 (placeholder + 構造化 spec + asset 差し替え、Actio 8888 隣) |
 | Thaleia | **8890** | THALEIA_PORT | 8890 | 企画↔実装トレーサビリティ (Praeforma 仕様 × Anatomia 解析の突合ビューア、loopback only) |
 | Nuntius backend | **3100** | BACKEND_PORT | 3100 | 通知 |
 | Nuntius frontend | **5175** | FRONTEND_PORT | 5173 | 通知 admin |
