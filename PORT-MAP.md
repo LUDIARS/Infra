@@ -2,7 +2,7 @@
 
 LUDIARS 全サービスのホスト側 port 割り当て表。**同一ホストで複数サービスを並行起動しても衝突しない**ことを保証するための単一情報源。
 
-最終更新: 2026-05-17 (Excubitor 機能を Concordia に集約、 Excubitor は obsolete。 旧 17331 を Concordia web に再割当)
+最終更新: 2026-06-25 (Foedus web ビューア 17340 を割当。 Cernere↔Hub 連結契約の loopback 読み取り専用ビュー)
 
 ---
 
@@ -63,6 +63,7 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Custos | **17777** | (要確認) | 17777 | テストランナー |
 | Quaestor backend | **17400** | QUAESTOR_PORT | 17400 | 個人会計 (loopback only) |
 | Susurrus core | **17370** | SUSURRUS_LOCAL_PORT | 17370 | チャット daemon (loopback only) |
+| Foedus web | **17340** | FOEDUS_PORT | 17340 | Cernere↔Hub 連結契約 読み取り専用ビューア (`foedus serve`、loopback only)。被レビュー対象の dev server ではなく静的解析結果の閲覧専用 |
 | Bibliotheca | **17501** | BIBLIOTHECA_PORT | 17501 | 本 / 機材 貸出台帳 (loopback only)。17500 は Dropbox LAN sync が squat |
 | Ostiarius | **17590** | OSTIARIUS_PORT | 17590 | 会場 LAN チェックインゲートウェイ (passkey assertion オフライン検証 + attestation 署名、Aedilis 出席チェックインの会場側) |
 | Memoria | (Tauri デスクトップ) | - | - | host bind なし |
