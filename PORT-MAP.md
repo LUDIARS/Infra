@@ -2,7 +2,7 @@
 
 LUDIARS 全サービスのホスト側 port 割り当て表。**同一ホストで複数サービスを並行起動しても衝突しない**ことを保証するための単一情報源。
 
-最終更新: 2026-06-25 (Foedus web ビューア 17340 を割当。 Cernere↔Hub 連結契約の loopback 読み取り専用ビュー)
+最終更新: 2026-06-26 (Excubitor 再稼働を反映し backend 17332 / frontend 17333 に確定 = 17331 は Concordia web 専用。 Discutere backend を Nuntius(3100) 衝突回避で 3110 に確定)
 
 ---
 
@@ -53,15 +53,16 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Thaleia | **8890** | THALEIA_PORT | 8890 | 企画↔実装トレーサビリティ (Praeforma 仕様 × Anatomia 解析の突合ビューア、loopback only) |
 | Nuntius backend | **3100** | BACKEND_PORT | 3100 | 通知 |
 | Nuntius frontend | **5175** | FRONTEND_PORT | 5173 | 通知 admin |
+| Discutere backend | **3110** | BACKEND_PORT | 3110 | Discord 自走議論 (admin/dashboard, loopback)。Nuntius(3100) 衝突回避で 3110 へ退避 |
 | Imperativus | **5963** | SERVER_PORT | 5963 | GPS / 音声 relay |
 | Imperativus MQTT | **1883** | MQTT_PORT | 1883 | MQTT broker |
 | Imperativus MQTT WS | ⚠️ **9001 衝突** | MQTT_WS_PORT | 9001 | MinIO Console と衝突 |
 | Signum | **3200** | SIGNUM_PORT | 3200 | コンテンツ署名 |
 | Signum web | **8083** | SIGNUM_WEB_PORT | 80 | |
 | Concordia backend | **17330** | CONCORDIA_PORT | 17330 | multi-agent coordinator + サービス可観測性 + auto-fix (旧 Excubitor 統合)。loopback only |
-| Concordia web | **17331** | (vite.config) | 17331 | Concordia フロントエンド (loopback only)。旧 Excubitor backend を継承 |
-| ~~Excubitor backend~~ | ~~17331~~ | - | - | **obsolete (2026-05-17)** → port は Concordia web が継承 |
-| ~~Excubitor web~~ | ~~17332~~ | - | - | **obsolete (2026-05-17)**。17332 と 17333 は空き |
+| Concordia web | **17331** | (vite.config) | 17331 | Concordia フロントエンド Vite (loopback only / strictPort)。**Excubitor はここを使わない** (旧 backend port を継承)。backend 17330 も web/dist を配信する |
+| Excubitor backend | **17332** | EXCUBITOR_PORT | 17332 | サービス監視・運用コア (2026-05-31 独立サービスとして再稼働、loopback only)。旧 17331 は Concordia web と衝突するため使用不可 |
+| Excubitor frontend | **17333** | (frontend/config.ts) | 17333 | Excubitor 監視 UI Vite (loopback only)。`/api/*` を backend 17332 へ proxy |
 | Custos | **17777** | (要確認) | 17777 | テストランナー |
 | Quaestor backend | **17400** | QUAESTOR_PORT | 17400 | 個人会計 (loopback only) |
 | Susurrus core | **17370** | SUSURRUS_LOCAL_PORT | 17370 | チャット daemon (loopback only) |
@@ -72,11 +73,20 @@ shared infra 利用前提の本番風起動。各サービスの host port は *
 | Calicula | (Tauri デスクトップ) | - | - | host bind なし |
 | Hora | (Tauri デスクトップ) | - | - | host bind なし |
 
+### 解決済み
+
+| 衝突 port | 競合相手 | 解決 |
+|-----------|---------|------|
+| **17331** | Excubitor backend ⚡ Concordia web (Vite) | Excubitor を再稼働スキーム backend 17332 / frontend 17333 に確定し 17331 を Concordia へ解放 (Excubitor `frontend/config.ts` + `start-excubitor.bat`) |
+| **3100** | Discutere backend ⚡ Nuntius backend | Discutere の既定 backend port を 3110 に変更 (`config.ts` / `.env.example` / docs) |
+
 ### 既知の競合 (要修正)
 
 | 衝突 port | 競合相手 | 対応案 |
 |-----------|---------|--------|
 | **9001** | Imperativus MQTT WS ⚡ MinIO Console | Imperativus を `9183` 等へ移動。 .env と docker-compose.yaml 同時更新 |
+| **3000** | Actio backend ⚡ Schedula backend | 両者 docker-compose 既定が `:3000`。本表は Actio=8888 を意図するが Actio の compose 既定は 3000 のまま → `.env` で `BACKEND_PORT=8888` を既定化する (compose の `${BACKEND_PORT:-3000}` を 8888 に) |
+| **17340** | Conciliator ⚡ Foedus web | Excubitor catalog は Conciliator を 17340 に置くが 17340 は Foedus web。Conciliator を別番号 (例 17341) へ移すか catalog を修正する |
 
 ### Frontend (Vite dev) host bind の慣習
 
