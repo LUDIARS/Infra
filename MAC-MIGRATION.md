@@ -91,10 +91,21 @@ minio / mailpit / 各プロジェクト個別 DB は常時稼働ではないの�
 
 ## 3. 前提条件 (Mac 側)
 
-### 3.1 docker
+### 3.1 docker — 導入済み (Colima)
 
-**OrbStack** を入れる。Rancher Desktop より軽く、自動起動が素直。
-Docker Desktop / Rancher Desktop でも可。
+この Mac は **Colima** で docker を動かしている。追加導入は不要。
+
+```
+docker 29.5.2 / compose 5.3.1 / aarch64 / macOS Virtualization.Framework
+socket: unix:///Users/<mac-user>/.colima/default/docker.sock
+```
+
+**OrbStack は使えない。** macOS Sonoma 以上が必要で、この Mac は Ventura 13.7.8。
+使いたければ先に macOS を上げる必要があり、移行とは別軸の作業になる。
+
+> **colima の自動起動が未設定** (`brew services list` で colima は `none`)。
+> Mac を再起動すると docker が上がらず、Windows 側の全サービスが DB を失う。
+> `brew services start colima` などで常駐させること。
 
 ### 3.2 Tailscale の CLI (任意)
 
@@ -197,6 +208,15 @@ bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 `LISTEN_ADDR` は **設定しない**。未設定なら `docker-compose.mac.yaml` が
 `127.0.0.1` に bind する (§1.2)。
 
+> **Mac には既に infra スタックが動いている** (2 週間前から postgres / redis /
+> minio / mailhog、いずれも 127.0.0.1 バインド)。ただし中身は
+> `init-databases.sql` を流しただけの雛形で、`excubitor` (89MB) / `glab` /
+> `volputas` / `volputas_haster` / `actio` の 5 本が存在せず、残りもほぼ空。
+> **実データは入っていないので Windows の dump で置き換えてよい。**
+>
+> `restore-mac.sh` は既存 volume を検知すると停止する (まっさらな cluster へ
+> restore する前提のため)。指示どおり `down -v` してから再実行する。
+
 `restore-mac.sh` がやること:
 
 1. `docker-compose.mac.yaml` を override に指定して postgres / redis を起動
@@ -234,7 +254,7 @@ node E:\Document\Ars\infra\scripts\mac-migration\mac-tunnel.mjs
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
-| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名 |
+| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名  |
 | `MAC_TUNNEL_HOST` | `<mac-host>.local` | Mac の mDNS 名。IP が変わっても追従する |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート |
 
@@ -364,6 +384,8 @@ portproxy を使っていた場合は `.\portproxy.ps1 -Action remove` も実行
 | fragment が読まれない | `excubitor.catalog.yaml` は worktree から拾われない | 共有 checkout が該当ファイルを持つ branch にいること (§4.3) |
 | `ENCRYPTION_KEY` の紛失 | Infisical の全 secret が復号不能。復旧手段なし | `.env` を先に安全な場所へ退避 |
 | postgres メジャーバージョン混同 | infra は 17、Infisical は 14 | Mac 側も同じメジャーで立てる。上げるなら移設完了後に別作業 |
+| colima が上がっていない | Mac 再起動後に docker が起動せず全サービスが DB を失う | `brew services` で colima を常駐させる。切り分けは §8 |
+| 非対話 SSH の PATH | `/opt/homebrew/bin` が入らず `docker: command not found` になる | スクリプト側で PATH を前置する。手で叩けるのに自動で動かない形で出る |
 | mDNS 名が引けない | `<mac-host>.local` の解決に失敗するとトンネルが張れない | `ping <mac-host>.local` で確認。ダメなら `MAC_TUNNEL_HOST` を IP か tailscale 名に切り替える |
 | SSH 締め出し | `AllowUsers` の設定ミスで入れなくなる | 反映前に別セッションを繋いだままにする (§3.4) |
 
@@ -374,6 +396,7 @@ portproxy を使っていた場合は `.\portproxy.ps1 -Action remove` も実行
 Excubitor の起動が `Infisical login failed: 502` や
 `resolveStartupEnv` で全滅したときの確認順序。
 
+0. Mac の docker が動いているか — `ssh <mac-user>@<mac-host>.local 'colima status'`
 1. Mac は生きているか — `ping <mac-host>.local`
 2. トンネルは動いているか — Excubitor で `mac-db-tunnel` の state を見る
 3. Windows から届くか — `Test-NetConnection 127.0.0.1 -Port 5432`

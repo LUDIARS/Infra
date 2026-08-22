@@ -12,6 +12,11 @@
 
 set -euo pipefail
 
+# 非対話 SSH の PATH は /usr/bin:/bin:/usr/sbin:/sbin しかなく、Homebrew で入れた
+# docker / colima が見えない。手で叩くと動くのに ssh 越しだと command not found に
+# なるため、ここで前置する。
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 DUMP_DIR="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -31,7 +36,8 @@ if [ ! -f "$DUMP_DIR/infra-all.sql" ]; then
 fi
 
 if ! docker version >/dev/null 2>&1; then
-  echo "docker daemon に接続できません。OrbStack / Docker Desktop を起動してください" >&2
+  echo "docker daemon に接続できません。colima status を確認してください" >&2
+  echo "  colima start   # 停止していれば" >&2
   exit 1
 fi
 
