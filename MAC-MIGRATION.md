@@ -1,15 +1,18 @@
 # Infisical / 共有 DB の Mac 移設 手順書
 
-Windows 機 (`<windows-host>`) で動いている共有 DB と Infisical を Mac へ移し、
-Windows 側は **設定を一切書き換えずに** そのまま使い続けるための手順。
+Windows 機 (`<windows-host>` / <windows-tailscale-ip>) で動いている共有 DB と Infisical を
+Mac (`<mac-tailscale-name>` / 100.84.227.24) へ移し、Windows 側は **設定を一切書き換えずに**
+そのまま使い続けるための手順。
 
 対応スクリプトは `scripts/mac-migration/` にある。
 
 ---
 
-## 1. 設計方針 — `localhost` を変えない
+## 1. 設計方針
 
-移設の作業量の大半はデータではなく **接続先の書き換えが全リポに散っていること**にある。
+### 1.1 `localhost` を変えない
+
+移設の作業量の大半はデータではなく **接続先が全リポに散っていること**にある。
 
 - Excubitor catalog の env (例 `GLAB_DATABASE_URL=postgresql://glab_user:glab@localhost:5432/glab`)
 - Infisical に登録済みの secret
@@ -19,17 +22,47 @@ Windows 側は **設定を一切書き換えずに** そのまま使い続ける
 1 箇所でも漏れると、Excubitor の `resolveStartupEnv` 段階で
 **secret 注入対象のサービスが一斉に起動不能**になり、原因が非常に見えにくい。
 
-そこで **Windows 側に `netsh interface portproxy` を 1 枚かぶせ、
-`127.0.0.1:5432` などをそのまま Mac へ横流しする**。
-これにより **設定ファイルの変更は 0 箇所**、切り戻しは 1 行になる。
+そこで Windows 側から見えるアドレスを `127.0.0.1:5432` のまま維持する。
+**設定ファイルの変更は 0 箇所**になる。
+
+### 1.2 DB はどのネットワークにも出さない
+
+Mac 側の docker は **`127.0.0.1` にのみ bind** する。Windows へは
+**SSH ポートフォワード**で `127.0.0.1:<port>` として見せる。
 
 ```
-127.0.0.1:5432  ->  <mac>:5432   PostgreSQL (共有)
-127.0.0.1:6379  ->  <mac>:6379   Redis (共有)
-127.0.0.1:8931  ->  <mac>:8931   Infisical backend
+Windows                                  Mac
+127.0.0.1:5432 --+                 +-- 127.0.0.1:5432  (postgres)
+127.0.0.1:6379 --+- SSH tunnel ----+-- 127.0.0.1:6379  (redis)
+127.0.0.1:8931 --+   over tailnet  +-- 127.0.0.1:8931  (Infisical)
 ```
 
-Windows 標準機能で追加インストール不要、再起動後も残る。
+DB のポートは LAN にも tailnet にも露出しない。到達できるのは
+SSH で認証を通したセッションだけになる。
+
+これは現行の認証の弱さを補う意味がある。共有 redis は `--requirepass` が無く、
+postgres も `glab_user:glab` のような開発用パスワードのままなので
+(`review/2026-05-13/REVIEW_VULNERABILITY.md` の指摘)、
+**到達できること自体がほぼ権限**という状態にある。
+
+### 1.3 トンネルは Excubitor に監視させる
+
+トンネルは常駐プロセスなので、落ちれば全サービスが DB を失う。
+これは Rancher Desktop 停止で起きた「原因が見えない全滅」と同じ症状になる。
+
+そこで `excubitor.catalog.yaml` に `mac-db-tunnel` を **infra tier**
+(他サービスより先に起動する枠) + `restart_policy: always` で登録し、
+Excubitor に死活監視と自動再起動をさせる。
+
+health は pid 生存ではなく **tcp 5432 への疎通**で見る。
+ssh プロセスが生きたままフォワードだけ死ぬ状態を検知するため。
+
+### 1.4 代替案 (portproxy)
+
+SSH が使えない場合の代替として `portproxy.ps1` を残してある。
+`netsh interface portproxy` は Windows カーネルの設定なので落ちる概念が無い代わりに、
+**Mac 側の DB を LAN か tailnet に露出させる必要がある**。
+トンネルが使えるならそちらを使う。
 
 ---
 
@@ -37,7 +70,7 @@ Windows 標準機能で追加インストール不要、再起動後も残る。
 
 | compose | コンテナ | host port | 中身 |
 |---|---|---|---|
-| `infra/docker-compose.yaml` | `infra-postgres-1` | 5432 | postgres:17-alpine。14 DB / 合計 約 180MB |
+| `infra/docker-compose.yaml` | `infra-postgres-1` | 5432 | postgres:17-alpine。11 DB / dump 53.3MB |
 | 同上 | `infra-redis-1` | 6379 | redis:7-alpine (`--save 60 1`) |
 | 同上 | minio | 9000 / 9001 | Curare 用オブジェクトストレージ |
 | 同上 | mailpit | 1025 / 8025 | dev SMTP キャッチャー |
@@ -47,9 +80,9 @@ Windows 標準機能で追加インストール不要、再起動後も残る。
 | `Peregrinatio/docker-compose.yml` | `peregrinatio-db` | 15433 | 通常停止 |
 | `Tirocinium/docker-compose.yml` | `tirocinium-db` | 15432 | 通常停止 |
 
-共有 postgres の内訳 (`pg_database_size` 降順):
-`excubitor` 89MB / `cernere` 10MB / `schedula` / `volputas` / `volputas_haster` /
-`actio` / `nuntius` / `glab` / `curare` / `ludiars` / `imperativus` (各 7〜10MB)。
+共有 postgres の内訳: `excubitor` 89MB / `cernere` 10MB / `schedula` /
+`volputas` / `volputas_haster` / `actio` / `nuntius` / `glab` / `curare` /
+`ludiars` / `imperativus` (各 7〜10MB)。
 
 **Phase 1 の対象は infra の postgres と redis のみ。**
 minio / mailpit / 各プロジェクト個別 DB は常時稼働ではないので後回しでよい。
@@ -58,14 +91,65 @@ minio / mailpit / 各プロジェクト個別 DB は常時稼働ではないの�
 
 ## 3. 前提条件 (Mac 側)
 
-1. **OrbStack** を入れる。Rancher Desktop より軽く、自動起動が素直。
-   Docker Desktop / Rancher Desktop でも可。
-2. **Tailscale に参加させる**。LAN 固定 IP でもよいが、MagicDNS 名のほうが安定する。
-   参加後 `tailscale ip -4` で 100.x のアドレスを控える。
-3. **電源接続時のスリープを無効化**する。
-   システム設定 > バッテリー > 電源アダプタ > 「ディスプレイがオフのときは自動でスリープさせない」。
-   Mac が寝ると Windows 側の全サービスが DB を失って起動不能になる。
-4. `docker` と `docker compose` が使えることを確認する。
+### 3.1 docker
+
+**OrbStack** を入れる。Rancher Desktop より軽く、自動起動が素直。
+Docker Desktop / Rancher Desktop でも可。
+
+### 3.2 Tailscale の CLI に PATH を通す
+
+GUI 版の Tailscale は CLI に PATH が通っていない (`zsh: command not found: tailscale`)。
+
+```bash
+sudo ln -s /Applications/Tailscale.app/Contents/MacOS/Tailscale /usr/local/bin/tailscale
+tailscale version
+```
+
+**alias ではなく symlink にする。** alias は対話シェルでしか効かず、
+SSH 越しの非対話実行やスクリプトからは `command not found` になる。
+「手で叩くと動くのに自動実行だと動かない」という嵌り方をする。
+
+### 3.3 スリープを無効化
+
+システム設定 > バッテリー > 電源アダプタ >
+「ディスプレイがオフのときは自動でスリープさせない」。
+
+**Mac が寝ると Windows 側の全サービスが DB を失う。**
+
+### 3.4 SSH を tailnet 限定で有効化
+
+システム設定 > 一般 > 共有 > **リモートログイン** を ON。
+またはターミナルから `sudo systemsetup -setremotelogin on`。
+
+接続元を tailnet に限定する。`<user>` は `whoami` の値。
+
+```
+# /etc/ssh/sshd_config.d/10-tailnet-only.conf
+AllowUsers <user>@100.64.0.0/10
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+```
+
+反映は `sudo launchctl kickstart -k system/com.openssh.sshd`。
+
+`grep -n '^Include' /etc/ssh/sshd_config` で Include 行を確認する。
+無い古い macOS では、内容を `/etc/ssh/sshd_config` の **先頭近く**に直接追記する
+(sshd_config は最初に現れた値が勝つため、末尾追記だと効かないことがある)。
+
+> **締め出し防止**: 反映前に別のターミナルで SSH セッションを 1 本繋いだままにする。
+> Mac 本体のキーボードが使えるなら不要。
+
+LAN 限定 (`192.168.0.0/24`) にもできるが、LAN は「同じ Wi-Fi に繋がった全機器」
+(IoT 家電やゲストの端末を含む) を意味する。tailnet は自分がログインしたデバイスだけなので、
+**tailnet 限定のほうが範囲が狭い**。
+
+### 3.5 Windows の公開鍵を登録
+
+`~/.ssh/authorized_keys` (パーミッション 600、`~/.ssh` は 700) に以下を追記する。
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGcgcIHmpWUldyXbwTbw4EPWtIkUiEZhts1Qa9lrrv2P
+```
 
 ---
 
@@ -88,17 +172,22 @@ cd E:\Document\Ars\infra\scripts\mac-migration
 > 厳密に揃えたい場合は Excubitor で全サービスを停止してから取る。
 > 開発環境の移設では通常そこまで不要。
 
+> dump の冒頭に `\restrict` が入る (PostgreSQL 17.6 以降の psql 構文)。
+> `restore-mac.sh` は `docker exec` でコンテナ内の psql に流すため問題ないが、
+> **Mac 側の psql を直接叩いて restore しようとすると失敗する。**
+
 ### 4.2 Mac: 転送して restore
 
 ```bash
-# Windows から scp / AirDrop / 共有フォルダ等で dump ディレクトリを Mac へ運ぶ
 scp -r <windows>:~/mac-migration-dump/<timestamp> ~/mac-migration-dump/
 
-git clone <infra リポ> ~/Ars/infra   # または docker-compose.yaml だけ持っていく
+git clone <infra リポ> ~/Ars/infra
 cd ~/Ars/infra
-
 bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 ```
+
+`LISTEN_ADDR` は **設定しない**。未設定なら `docker-compose.mac.yaml` が
+`127.0.0.1` に bind する (§1.2)。
 
 `restore-mac.sh` がやること:
 
@@ -106,7 +195,7 @@ bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 2. `pg_isready` になるまで待つ
 3. `infra-all.sql` を `psql` に流す
 
-> ⚠️ **`init-databases.sql` は Mac 側で流さない。**
+> **`init-databases.sql` は Mac 側で流さない。**
 > `pg_dumpall` の出力に `CREATE ROLE` / `CREATE DATABASE` が全部入っているため、
 > 初期化スクリプトと二重定義になる。`docker-compose.mac.yaml` はこのマウントを外してある。
 >
@@ -118,31 +207,64 @@ bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 どうしても引き継ぐなら Windows 側で `docker cp infra-redis-1:/data/dump.rdb .` して
 Mac の volume へ置く。
 
-### 4.3 Windows: 切り替える
+### 4.3 Windows: トンネルに切り替える
+
+**1. 旧コンテナを止める** (削除はしない = 切り戻し用に残す)
 
 ```powershell
-# 旧コンテナを止める (削除はしない = 切り戻し用に残す)
 cd E:\Document\Ars\infra
 docker compose stop postgres redis
-
-# 管理者 PowerShell で
-cd E:\Document\Ars\infra\scripts\mac-migration
-.\portproxy.ps1 -Action add -MacHost 100.x.x.x
-.\portproxy.ps1 -Action status
 ```
+
+**2. 手動でトンネルを張って疎通を確認する**
+
+```powershell
+node E:\Document\Ars\infra\scripts\mac-migration\mac-tunnel.mjs
+```
+
+環境変数:
+
+| 変数 | 既定 | 意味 |
+|---|---|---|
+| `MAC_TUNNEL_USER` | (必須) | Mac のログインユーザ名 |
+| `MAC_TUNNEL_HOST` | `100.84.227.24` | Mac の Tailscale アドレス |
+| `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート |
+
+別のターミナルで疎通確認:
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 5432
+```
+
+**3. Excubitor に登録して常駐させる**
+
+疎通したら手動のトンネルを止め、Excubitor に任せる。
+`excubitor.catalog.yaml` の `mac-db-tunnel` が
+infra tier + `restart_policy: always` + tcp health で定義済み。
+
+`MAC_TUNNEL_USER` は `required_env` なので、未設定なら
+**起動時に fail-fast する** (無言で繋がらないより良い)。
+
+> **catalog fragment の反映条件**
+>
+> Excubitor は `${ARS_ROOT}` 直下の各ディレクトリから `excubitor.catalog.yaml` を
+> 1 階層で拾う。**git worktree は未マージ定義の混入を防ぐため探索対象外**
+> (`Excubitor/catalog/FRAGMENTS.md`)。
+>
+> つまり `E:\Document\Ars\infra` の **checkout 自身が**このファイルを持つ必要がある。
+> 共有 checkout が別ブランチにいる間は fragment が読まれず、
+> `mac-db-tunnel` は catalog に現れない。
 
 ### 4.4 検証
 
 **設定を一切変更していない状態で** サービスが上がることを確認する。
 
-```powershell
-# Excubitor 経由で起動 (本体フォルダのみ。worktree からは起動しない)
-# 事前に Concordia へ claim を入れること
-```
-
 - `cernere` (8080) が起動して応答する
 - `glab` (5187) が起動する
 - `excubitor` 自身の DB 参照 (89MB の最大 DB) が壊れていない
+
+Excubitor 経由で起動すること。プロジェクト本体フォルダのみで行い、
+worktree からは起動しない。事前に Concordia へ testing claim を入れる。
 
 ---
 
@@ -173,33 +295,45 @@ Infisical のような常時参照される認証基盤には向かない。
 - `SITE_URL`、SMTP 設定、各種 OAuth client id/secret
 
 **DB だけ移して `.env` を作り直すと全 secret が失われる。**
-`.env` は git 管理外なので、安全な経路 (USB / 1Password / scp) で手渡しする。
+`.env` は git 管理外なので、安全な経路で手渡しする。
 dump スクリプトは事故防止のため `.env` を自動コピーしない。
+
+> Mac 側で Infisical を先に新規構築してしまった場合、その `ENCRYPTION_KEY` は
+> Windows のものと異なる。Windows 側の secret を引き継ぐには、
+> **Windows の `.env` と DB dump の両方**で上書きする必要がある。
 
 ### 5.3 手順
 
 1. Windows: `dump-windows.ps1 -IncludeInfisical` で `infisical-all.sql` も取る
 2. `.env` を手動で Mac へ運ぶ
-3. Mac: `docker-compose.prod.yml` + `.env` を配置して `docker compose up -d db redis`
-4. `infisical-all.sql` を restore
-5. `docker compose up -d backend`
-6. `http://<mac>:8931/api/status` が 200 を返すことを確認
-7. Windows: 旧 Infisical を `docker compose stop` し、8931 の portproxy を張る
-8. Excubitor から適当なサービスを起動し、secret 注入が通ることを確認
+3. Mac: `docker-compose.prod.yml` + `.env` を配置し、backend の publish を
+   `127.0.0.1:8931:8080` に変える override を置く
 
-`INFISICAL_SITE_URL` は portproxy で吸収されるので **Excubitor の env は触らない**。
+   ```yaml
+   # infisical 側の docker-compose.override.yml
+   services:
+     backend:
+       ports:
+         - "127.0.0.1:8931:8080"
+   ```
+4. `docker compose up -d db redis` して `infisical-all.sql` を restore
+5. `docker compose up -d backend`
+6. Mac 上で `curl -s -o /dev/null -w '%{http_code}' http://localhost:8931/api/status` が 200
+7. Windows: 旧 Infisical を `docker compose stop`
+8. トンネルの `MAC_TUNNEL_PORTS` に 8931 が含まれていることを確認 (既定で含む)
+9. Excubitor から適当なサービスを起動し、secret 注入が通ることを確認
+
+`INFISICAL_SITE_URL` はトンネルで吸収されるので **Excubitor の env は触らない**。
 ただし Infisical 側の `SITE_URL` は Mac から見た自分自身の URL なので、
-`.env` の `SITE_URL` は Mac のアドレスに合わせて更新する。
+`.env` の `SITE_URL` は必要に応じて更新する。
 
 ---
 
 ## 6. 切り戻し
 
-Phase 1 / Phase 2 とも同じ。
-
 ```powershell
-# 管理者 PowerShell
-.\portproxy.ps1 -Action remove
+# Excubitor で mac-db-tunnel を停止
+# (手動で張っている場合は Ctrl-C)
 
 cd E:\Document\Ars\infra
 docker compose start postgres redis
@@ -208,18 +342,21 @@ docker compose start postgres redis
 旧コンテナと volume を消していない限り、これで移設前の状態に完全に戻る。
 **移設後しばらくは Windows 側の volume を削除しないこと。**
 
+portproxy を使っていた場合は `.\portproxy.ps1 -Action remove` も実行する。
+
 ---
 
 ## 7. 既知のリスクと対処
 
 | リスク | 内容 | 対処 |
 |---|---|---|
-| Mac のスリープ / オフライン | Windows 側の全サービスが DB を失い、`resolveStartupEnv` で一斉に起動不能になる。原因が Infisical 障害に見えて切り分けが遅れる | 電源接続時スリープ無効。切り分けは §8 |
+| トンネル断 | 常駐プロセスなので落ちる。落ちた瞬間に全サービスが DB を失う | Excubitor の `restart_policy: always` + tcp health。ssh 側にも `ServerAliveInterval=15` / `ExitOnForwardFailure=yes` |
+| Mac のスリープ / オフライン | 同上。原因が Infisical 障害に見えて切り分けが遅れる | 電源接続時スリープ無効。切り分けは §8 |
+| fragment が読まれない | `excubitor.catalog.yaml` は worktree から拾われない | 共有 checkout が該当ファイルを持つ branch にいること (§4.3) |
 | `ENCRYPTION_KEY` の紛失 | Infisical の全 secret が復号不能。復旧手段なし | `.env` を先に安全な場所へ退避 |
-| postgres メジャーバージョン混同 | infra は 17、Infisical は 14。移設と同時にアップグレードすると変数が 2 つになる | Mac 側も同じメジャーで立てる。上げるなら移設完了後に別作業 |
-| LAN への露出 | 現行 redis は `--requirepass` 無し、postgres も `0.0.0.0` バインド。Mac でそのまま公開すると素通し | `docker-compose.mac.yaml` は Tailscale IF のみにバインドする。`review/2026-05-13/REVIEW_VULNERABILITY.md` の指摘に対応 |
-| portproxy が効かない | IP Helper (iphlpsvc) サービス停止時は動かない。管理者権限も必要 | `portproxy.ps1` が起動時に両方チェックする |
-| 匿名 volume | compose の volume 名が変わると無効化される一時データ | 移設対象外。`scripts/rancher-migration/` の除外規則と同じ扱い |
+| postgres メジャーバージョン混同 | infra は 17、Infisical は 14 | Mac 側も同じメジャーで立てる。上げるなら移設完了後に別作業 |
+| Tailscale CLI が PATH に無い | 手順中の `tailscale ip -4` 等が動かない | symlink を張る (§3.2)。alias は非対話実行で効かない |
+| SSH 締め出し | `AllowUsers` の設定ミスで入れなくなる | 反映前に別セッションを繋いだままにする (§3.4) |
 
 ---
 
@@ -228,13 +365,13 @@ docker compose start postgres redis
 Excubitor の起動が `Infisical login failed: 502` や
 `resolveStartupEnv` で全滅したときの確認順序。
 
-1. Mac は生きているか — `ping <mac>` / `tailscale status`
-2. portproxy は張られているか — `.\portproxy.ps1 -Action status`
-3. Mac 側の container は上がっているか — `ssh <mac> docker ps`
-4. Windows から届くか — `Test-NetConnection 127.0.0.1 -Port 5432`
+1. Mac は生きているか — `tailscale ping <mac-tailscale-name>`
+2. トンネルは動いているか — Excubitor で `mac-db-tunnel` の state を見る
+3. Windows から届くか — `Test-NetConnection 127.0.0.1 -Port 5432`
+4. Mac 側の container は上がっているか — `ssh <user>@100.84.227.24 docker ps`
 
 移設前は同じ症状の原因が「Rancher Desktop が落ちている」だったが、
-移設後は **原因が Mac 側へ移る**。この違いを最初に意識すること。
+移設後は **原因が Mac 側とトンネルへ移る**。この違いを最初に意識すること。
 
 ---
 
@@ -244,5 +381,6 @@ Excubitor の起動が `Infisical login failed: 502` や
   volume backup / restore 一式。**同一ホスト内**の docker daemon 載せ替え用で、
   volume を tar で運ぶ。今回の Windows -> Mac はアーキテクチャが変わるため、
   postgres は volume コピーではなく **論理 dump (`pg_dumpall`)** を使う。
-- `PORT-MAP.md` — ホスト側 port の単一情報源。portproxy は既存の割り当てを
+- `PORT-MAP.md` — ホスト側 port の単一情報源。トンネルは既存の割り当てを
   変えないので更新不要。
+- `Excubitor/catalog/FRAGMENTS.md` — catalog fragment の集積仕様。

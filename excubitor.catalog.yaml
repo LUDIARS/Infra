@@ -1,0 +1,34 @@
+# Excubitor catalog fragment (Infra)
+# 集積仕様: Excubitor catalog/FRAGMENTS.md (services.yaml > fragment > auto)
+#
+# 共有 DB は Mac 上で 127.0.0.1 にのみ bind し、どのネットワークにも出さない。
+# Windows 側からは SSH ポートフォワードで 127.0.0.1:<port> として見せる。
+# このトンネルが落ちると DB を参照する全サービスが起動不能になるため、
+# infra tier + restart_policy always で Excubitor に監視させる。
+services:
+  - code: mac-db-tunnel
+    name: Mac DB tunnel (postgres / redis / Infisical)
+    tier: infra
+    project_code: infra
+    component: tunnel
+    port: 5432
+    repo: LUDIARS/Infra
+    runtime: node
+    cwd: ${ARS_ROOT}/infra
+    command: node scripts/mac-migration/mac-tunnel.mjs
+    allow_hot_reload: false
+    autostart: true
+    restart_policy: always
+    max_restart: 5
+    env:
+      MAC_TUNNEL_HOST: 100.84.227.24
+      MAC_TUNNEL_PORTS: 5432,6379,8931
+    # Mac のログインユーザ名。未設定なら fail-fast させる (無言で繋がらないより良い)
+    required_env:
+      - MAC_TUNNEL_USER
+    health:
+      # pid 生存ではなく実際に 5432 が転送されているかを見る。
+      # ssh プロセスが生きたままフォワードだけ死ぬ状態を検知するため。
+      type: tcp
+      interval_sec: 30
+      grace_period_sec: 15
