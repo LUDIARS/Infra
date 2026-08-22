@@ -13,7 +13,7 @@
 
 import { spawn } from 'node:child_process';
 
-const HOST = process.env.MAC_TUNNEL_HOST ?? '100.84.227.24';
+const HOST = process.env.MAC_TUNNEL_HOST ?? '<mac-host>.local';
 const USER = process.env.MAC_TUNNEL_USER;
 const PORTS = (process.env.MAC_TUNNEL_PORTS ?? '5432,6379,8931')
   .split(',')

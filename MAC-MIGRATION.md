@@ -1,7 +1,7 @@
 # Infisical / 共有 DB の Mac 移設 手順書
 
 Windows 機 (`<windows-host>` / <windows-tailscale-ip>) で動いている共有 DB と Infisical を
-Mac (`<mac-tailscale-name>` / 100.84.227.24) へ移し、Windows 側は **設定を一切書き換えずに**
+Mac (`<mac-host>.local` / <mac-lan-ip>、tailscale 名 `<mac-tailscale-name>`) へ移し、Windows 側は **設定を一切書き換えずに**
 そのまま使い続けるための手順。
 
 対応スクリプトは `scripts/mac-migration/` にある。
@@ -34,7 +34,7 @@ Mac 側の docker は **`127.0.0.1` にのみ bind** する。Windows へは
 Windows                                  Mac
 127.0.0.1:5432 --+                 +-- 127.0.0.1:5432  (postgres)
 127.0.0.1:6379 --+- SSH tunnel ----+-- 127.0.0.1:6379  (redis)
-127.0.0.1:8931 --+   over tailnet  +-- 127.0.0.1:8931  (Infisical)
+127.0.0.1:8931 --+   over LAN      +-- 127.0.0.1:8931  (Infisical)
 ```
 
 DB のポートは LAN にも tailnet にも露出しない。到達できるのは
@@ -96,7 +96,10 @@ minio / mailpit / 各プロジェクト個別 DB は常時稼働ではないの�
 **OrbStack** を入れる。Rancher Desktop より軽く、自動起動が素直。
 Docker Desktop / Rancher Desktop でも可。
 
-### 3.2 Tailscale の CLI に PATH を通す
+### 3.2 Tailscale の CLI (任意)
+
+本手順は LAN 経由 (`<mac-host>.local`) で完結するため Tailscale は必須ではない。
+外出先から触りたくなったときのために書いておく。
 
 GUI 版の Tailscale は CLI に PATH が通っていない (`zsh: command not found: tailscale`)。
 
@@ -116,16 +119,16 @@ SSH 越しの非対話実行やスクリプトからは `command not found` に�
 
 **Mac が寝ると Windows 側の全サービスが DB を失う。**
 
-### 3.4 SSH を tailnet 限定で有効化
+### 3.4 SSH を LAN 限定で有効化
 
 システム設定 > 一般 > 共有 > **リモートログイン** を ON。
 またはターミナルから `sudo systemsetup -setremotelogin on`。
 
-接続元を tailnet に限定する。`<user>` は `whoami` の値。
+接続元を LAN に限定する。
 
 ```
-# /etc/ssh/sshd_config.d/10-tailnet-only.conf
-AllowUsers <user>@100.64.0.0/10
+# /etc/ssh/sshd_config.d/10-lan-only.conf
+AllowUsers <mac-user>@192.168.0.0/24
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 ```
@@ -139,9 +142,14 @@ KbdInteractiveAuthentication no
 > **締め出し防止**: 反映前に別のターミナルで SSH セッションを 1 本繋いだままにする。
 > Mac 本体のキーボードが使えるなら不要。
 
-LAN 限定 (`192.168.0.0/24`) にもできるが、LAN は「同じ Wi-Fi に繋がった全機器」
-(IoT 家電やゲストの端末を含む) を意味する。tailnet は自分がログインしたデバイスだけなので、
-**tailnet 限定のほうが範囲が狭い**。
+`PasswordAuthentication no` は **公開鍵を登録し、鍵でログインできることを確認してから**
+入れる。先に入れると入れなくなる。
+
+tailnet 限定 (`AllowUsers <mac-user>@100.64.0.0/10`) のほうが接続元の範囲は狭いが、
+本構成では **DB が 127.0.0.1 に閉じていて SSH トンネル越しにしか届かない** ため、
+SSH の接続元が LAN であっても鍵認証を通さない限り DB には到達できない。
+「LAN は IoT やゲストも含むので広い」という懸念は、DB を直接 LAN に晒す構成の話であり、
+ここでは当てはまらない。両方許可したい場合は 2 行併記する。
 
 ### 3.5 Windows の公開鍵を登録
 
@@ -227,7 +235,7 @@ node E:\Document\Ars\infra\scripts\mac-migration\mac-tunnel.mjs
 | 変数 | 既定 | 意味 |
 |---|---|---|
 | `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名 |
-| `MAC_TUNNEL_HOST` | `100.84.227.24` | Mac の Tailscale アドレス |
+| `MAC_TUNNEL_HOST` | `<mac-host>.local` | Mac の mDNS 名。IP が変わっても追従する |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート |
 
 別のターミナルで疎通確認:
@@ -356,7 +364,7 @@ portproxy を使っていた場合は `.\portproxy.ps1 -Action remove` も実行
 | fragment が読まれない | `excubitor.catalog.yaml` は worktree から拾われない | 共有 checkout が該当ファイルを持つ branch にいること (§4.3) |
 | `ENCRYPTION_KEY` の紛失 | Infisical の全 secret が復号不能。復旧手段なし | `.env` を先に安全な場所へ退避 |
 | postgres メジャーバージョン混同 | infra は 17、Infisical は 14 | Mac 側も同じメジャーで立てる。上げるなら移設完了後に別作業 |
-| Tailscale CLI が PATH に無い | 手順中の `tailscale ip -4` 等が動かない | symlink を張る (§3.2)。alias は非対話実行で効かない |
+| mDNS 名が引けない | `<mac-host>.local` の解決に失敗するとトンネルが張れない | `ping <mac-host>.local` で確認。ダメなら `MAC_TUNNEL_HOST` を IP か tailscale 名に切り替える |
 | SSH 締め出し | `AllowUsers` の設定ミスで入れなくなる | 反映前に別セッションを繋いだままにする (§3.4) |
 
 ---
@@ -366,10 +374,10 @@ portproxy を使っていた場合は `.\portproxy.ps1 -Action remove` も実行
 Excubitor の起動が `Infisical login failed: 502` や
 `resolveStartupEnv` で全滅したときの確認順序。
 
-1. Mac は生きているか — `tailscale ping <mac-tailscale-name>`
+1. Mac は生きているか — `ping <mac-host>.local`
 2. トンネルは動いているか — Excubitor で `mac-db-tunnel` の state を見る
 3. Windows から届くか — `Test-NetConnection 127.0.0.1 -Port 5432`
-4. Mac 側の container は上がっているか — `ssh <user>@100.84.227.24 docker ps`
+4. Mac 側の container は上がっているか — `ssh <mac-user>@<mac-host>.local docker ps`
 
 移設前は同じ症状の原因が「Rancher Desktop が落ちている」だったが、
 移設後は **原因が Mac 側とトンネルへ移る**。この違いを最初に意識すること。
