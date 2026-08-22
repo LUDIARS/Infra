@@ -1,0 +1,33 @@
+# Mac 側で共有 infra を動かすための override。
+#
+#   docker compose -f docker-compose.yaml -f scripts/mac-migration/docker-compose.mac.yaml up -d postgres redis
+#
+# 本体 docker-compose.yaml との差分:
+#
+# 1. init-databases.sql のマウントを外す
+#    pg_dumpall の出力に CREATE ROLE / CREATE DATABASE が全て含まれているため、
+#    初期化スクリプトと二重定義になる。移設先では dump だけを正とする。
+#
+# 2. bind アドレスを明示する
+#    本体は 0.0.0.0 バインドで、Mac を LAN に置くと素通しになる。
+#    現行 redis は --requirepass 無しなので特に危険
+#    (review/2026-05-13/REVIEW_VULNERABILITY.md の指摘)。
+#    LISTEN_ADDR に Tailscale の 100.x を入れて、tailnet からのみ届くようにする。
+#
+#    export LISTEN_ADDR=$(tailscale ip -4)
+#
+#    Windows 側は portproxy 経由でこのアドレスへ接続する。
+
+services:
+  postgres:
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${LISTEN_ADDR:-127.0.0.1}:5432:5432"
+
+  redis:
+    ports:
+      - "${LISTEN_ADDR:-127.0.0.1}:6379:6379"
+
+volumes:
+  pgdata:

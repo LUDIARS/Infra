@@ -9,6 +9,9 @@ cd infra
 docker compose up -d
 ```
 
+> 共有 DB と Infisical を Mac へ移す手順は [`MAC-MIGRATION.md`](MAC-MIGRATION.md) を参照。
+> 移設後も接続先は `localhost` のままで、本 README の接続情報表は変わらない。
+
 ## 開発用 GUI ツール
 
 ```bash

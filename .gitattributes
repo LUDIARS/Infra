@@ -1,0 +1,7 @@
+# Mac 側で実行するシェルスクリプトは LF 固定。
+# CRLF で checkout されると bash が `\r` を含むコマンドとして解釈して落ちる。
+*.sh text eol=lf
+
+# PowerShell 5.1 は BOM 無し .ps1 を ANSI (cp932) として読むため、
+# 日本語コメントを含むスクリプトは UTF-8 BOM + CRLF を保つ。
+*.ps1 text eol=crlf
