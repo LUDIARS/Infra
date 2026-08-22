@@ -226,7 +226,7 @@ node E:\Document\Ars\infra\scripts\mac-migration\mac-tunnel.mjs
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
-| `MAC_TUNNEL_USER` | (必須) | Mac のログインユーザ名 |
+| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名 |
 | `MAC_TUNNEL_HOST` | `100.84.227.24` | Mac の Tailscale アドレス |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート |
 
@@ -242,7 +242,8 @@ Test-NetConnection 127.0.0.1 -Port 5432
 `excubitor.catalog.yaml` の `mac-db-tunnel` が
 infra tier + `restart_policy: always` + tcp health で定義済み。
 
-`MAC_TUNNEL_USER` は `required_env` なので、未設定なら
+`MAC_TUNNEL_USER` は catalog の `env` に既定値 `<mac-user>` を持たせつつ
+`required_env` にも入れてある。空値で上書きされた場合は
 **起動時に fail-fast する** (無言で繋がらないより良い)。
 
 > **catalog fragment の反映条件**

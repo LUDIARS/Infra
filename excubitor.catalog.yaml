@@ -23,7 +23,8 @@ services:
     env:
       MAC_TUNNEL_HOST: 100.84.227.24
       MAC_TUNNEL_PORTS: 5432,6379,8931
-    # Mac のログインユーザ名。未設定なら fail-fast させる (無言で繋がらないより良い)
+      MAC_TUNNEL_USER: <mac-user>
+    # 空値で上書きされた場合は起動前に落とす (無言で繋がらないより良い)
     required_env:
       - MAC_TUNNEL_USER
     health:

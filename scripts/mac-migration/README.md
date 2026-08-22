@@ -43,8 +43,7 @@ bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 # Windows
 docker compose stop postgres redis
 
-$env:MAC_TUNNEL_USER = '<mac のユーザ名>'
-node .\mac-tunnel.mjs           # まず手動で疎通確認
+node .\mac-tunnel.mjs           # まず手動で疎通確認 (既定で <mac-user>@100.84.227.24)
 # 通ったら Excubitor の mac-db-tunnel に任せる
 ```
 
@@ -54,7 +53,7 @@ node .\mac-tunnel.mjs           # まず手動で疎通確認
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
-| `MAC_TUNNEL_USER` | (必須) | Mac のログインユーザ名。未設定なら exit 2 |
+| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名。空なら exit 2 |
 | `MAC_TUNNEL_HOST` | `100.84.227.24` | Mac の Tailscale アドレス |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート (カンマ区切り) |
 
