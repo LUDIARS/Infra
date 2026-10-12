@@ -1,0 +1,12 @@
+{
+  "name": "shared-cache",
+  "description": "本社共有キャッシュ Garnet の取得・検証・展開 (版と SHA-256 の固定、 冪等な setup) と運用規約 (TTL 専用、 キー規約、 loopback 無認証)。 起動は Excubitor が行う。 仕様: spec/feature/garnet-shared-cache.md。",
+  "presetRules": [],
+  "templateRules": [],
+  "membership": [
+    { "pathPattern": "(^|/)scripts/garnet/(?:.*/)?[^/]+$" },
+    { "pathPattern": "(^|/)spec/feature/garnet-[^/]+\.md$" },
+    { "pathPattern": "(^|/)contracts/[^/]+\.contract\.mjs$" },
+    { "pathPattern": "(^|/)augur\.(?:contracts|inject)\.json$" }
+  ]
+}

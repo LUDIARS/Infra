@@ -1,0 +1,17 @@
+{
+  "name": "shared-infra-config",
+  "description": "LUDIARS 共有インフラの構成定義。 共有 DB / Redis / MinIO の compose、 マイグレーション、 Excubitor catalog 断片、 Mac への DB 移設とトンネル、 ポート表とリポ運用ファイルを所有する。",
+  "presetRules": [],
+  "templateRules": [],
+  "membership": [
+    { "pathPattern": "(^|/)excubitor\.catalog\.yaml$" },
+    { "pathPattern": "(^|/)docker-compose[^/]*\.yaml$" },
+    { "pathPattern": "(^|/)(?:migrate\.(?:mjs|sh)|drizzle\.config\.ts|init-databases\.sql|services\.yaml)$" },
+    { "pathPattern": "(^|/)schema/(?:.*/)?[^/]+$" },
+    { "pathPattern": "(^|/)scripts/mac-migration/(?:.*/)?[^/]+$" },
+    { "pathPattern": "(^|/)(?:README|PORT-MAP|MAC-MIGRATION)\.md$" },
+    { "pathPattern": "(^|/)review/(?:.*/)?[^/]+$" },
+    { "pathPattern": "(^|/)spec/domains/[^/]+\.json$" },
+    { "pathPattern": "(^|/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|tsconfig\.json|\.gitignore|\.revisor-version|LICENSE)$" }
+  ]
+}
