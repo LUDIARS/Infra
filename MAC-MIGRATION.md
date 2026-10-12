@@ -254,8 +254,8 @@ node E:\Document\Ars\infra\scripts\mac-migration\mac-tunnel.mjs
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
-| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名  |
-| `MAC_TUNNEL_HOST` | `<mac-host>.local` | Mac の mDNS 名。IP が変わっても追従する |
+| `MAC_TUNNEL_USER` | なし (必須) | Mac のログインユーザ名。.env.mac-tunnel に書く。空なら exit 2 |
+| `MAC_TUNNEL_HOST` | なし (必須) | Mac の mDNS 名 (IP が変わっても追従する)。.env.mac-tunnel に書く。空なら exit 2 |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート |
 
 別のターミナルで疎通確認:
@@ -270,9 +270,9 @@ Test-NetConnection 127.0.0.1 -Port 5432
 `excubitor.catalog.yaml` の `mac-db-tunnel` が
 infra tier + `restart_policy: always` + tcp health で定義済み。
 
-`MAC_TUNNEL_USER` は catalog の `env` に既定値 `<mac-user>` を持たせつつ
-`required_env` にも入れてある。空値で上書きされた場合は
-**起動時に fail-fast する** (無言で繋がらないより良い)。
+`MAC_TUNNEL_HOST` / `MAC_TUNNEL_USER` は公開リポに置かず、infra 直下の未追跡ファイル
+`.env.mac-tunnel` に書く (catalog の command が `node --env-file-if-exists=.env.mac-tunnel` で読む)。
+どちらかが空なら **起動時に fail-fast する** (無言で繋がらないより良い)。
 
 > **catalog fragment の反映条件**
 >

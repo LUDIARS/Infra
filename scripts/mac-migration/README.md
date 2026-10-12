@@ -43,7 +43,7 @@ bash scripts/mac-migration/restore-mac.sh ~/mac-migration-dump/<timestamp>
 # Windows
 docker compose stop postgres redis
 
-node .\mac-tunnel.mjs           # まず手動で疎通確認 (既定で <mac-user>@<mac-host>.local)
+node .\mac-tunnel.mjs           # まず手動で疎通確認 (.env.mac-tunnel の値を env に入れてから実行)
 # 通ったら Excubitor の mac-db-tunnel に任せる
 ```
 
@@ -53,8 +53,8 @@ node .\mac-tunnel.mjs           # まず手動で疎通確認 (既定で <mac-us
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
-| `MAC_TUNNEL_USER` | `<mac-user>` | Mac のログインユーザ名。空なら exit 2 |
-| `MAC_TUNNEL_HOST` | `<mac-host>.local` | Mac の mDNS 名。IP が変わっても追従する |
+| `MAC_TUNNEL_USER` | なし (必須) | Mac のログインユーザ名。.env.mac-tunnel に書く。空なら exit 2 |
+| `MAC_TUNNEL_HOST` | なし (必須) | Mac の mDNS 名 (IP が変わっても追従する)。.env.mac-tunnel に書く。空なら exit 2 |
 | `MAC_TUNNEL_PORTS` | `5432,6379,8931` | 転送するポート (カンマ区切り) |
 
 `ServerAliveInterval=15` / `ServerAliveCountMax=3` で約 45 秒で断を検知し、

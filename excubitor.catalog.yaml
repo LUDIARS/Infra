@@ -15,18 +15,15 @@ services:
     repo: LUDIARS/Infra
     runtime: node
     cwd: ${ARS_ROOT}/infra
-    command: node scripts/mac-migration/mac-tunnel.mjs
+    command: node --env-file-if-exists=.env.mac-tunnel scripts/mac-migration/mac-tunnel.mjs
     allow_hot_reload: false
     autostart: true
     restart_policy: always
     max_restart: 5
+    # 接続先ホストとログイン名は公開リポに置かず、未追跡の .env.mac-tunnel に書く
+    # (MAC_TUNNEL_HOST / MAC_TUNNEL_USER)。未設定なら mac-tunnel.mjs が exit 2 で止まる。
     env:
-      MAC_TUNNEL_HOST: <mac-host>.local
       MAC_TUNNEL_PORTS: 5432,6379,8931
-      MAC_TUNNEL_USER: <mac-user>
-    # 空値で上書きされた場合は起動前に落とす (無言で繋がらないより良い)
-    required_env:
-      - MAC_TUNNEL_USER
     health:
       # pid 生存ではなく実際に 5432 が転送されているかを見る。
       # ssh プロセスが生きたままフォワードだけ死ぬ状態を検知するため。

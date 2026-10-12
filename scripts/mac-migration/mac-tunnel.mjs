@@ -13,13 +13,17 @@
 
 import { spawn } from 'node:child_process';
 
-const HOST = process.env.MAC_TUNNEL_HOST ?? '<mac-host>.local';
+const HOST = process.env.MAC_TUNNEL_HOST;
 const USER = process.env.MAC_TUNNEL_USER;
 const PORTS = (process.env.MAC_TUNNEL_PORTS ?? '5432,6379,8931')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
+if (!HOST) {
+  console.error('[mac-tunnel] MAC_TUNNEL_HOST が未設定です (.env.mac-tunnel に Mac のホスト名を書く)');
+  process.exit(2);
+}
 if (!USER) {
   console.error('[mac-tunnel] MAC_TUNNEL_USER が未設定です (Mac のログインユーザ名)');
   process.exit(2);
