@@ -144,22 +144,18 @@ async function runSqlMigrations(svc, config) {
 
       console.log(`  Applying: ${file} ...`);
 
-      // Execute each statement separately for idempotency
-      const statements = content
-        .split(";")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-
-      for (const stmt of statements) {
-        try {
-          await client.query(stmt);
-        } catch (err) {
-          if (IGNORABLE_PG_CODES.has(err.code)) {
-            // Expected idempotent error — skip silently
-          } else {
-            console.error(`    ERROR in ${file}: ${err.message}`);
-            throw err;
-          }
+      // Execute the whole file in one call. Naive ";" splitting corrupts SQL
+      // that contains semicolons inside string/jsonb literals or dollar-quotes.
+      // Postgres' simple query protocol runs the multi-statement file as a
+      // single implicit transaction, so a migration applies atomically.
+      try {
+        await client.query(content);
+      } catch (err) {
+        if (IGNORABLE_PG_CODES.has(err.code)) {
+          // Expected idempotent error (already-applied objects) — treat as done
+        } else {
+          console.error(`    ERROR in ${file}: ${err.message}`);
+          throw err;
         }
       }
 
