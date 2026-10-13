@@ -12,6 +12,9 @@ docker compose up -d
 > 共有 DB と Infisical を Mac へ移す手順は [`MAC-MIGRATION.md`](MAC-MIGRATION.md) を参照。
 > 移設後も接続先は `localhost` のままで、本 README の接続情報表は変わらない。
 
+> 本社の共有キャッシュ (Garnet、TTL 付きキャッシュ専用) は [`spec/feature/garnet-shared-cache.md`](spec/feature/garnet-shared-cache.md) を参照。
+> バイナリの取得は `npm run garnet:setup`、起動は Excubitor (catalog code `garnet`)。
+
 ## 開発用 GUI ツール
 
 ```bash

@@ -33,6 +33,12 @@ LUDIARS 全サービスが共通で利用する基盤。常時稼働。
 | `infra-redisinsight-1` | **5540** | 5540 | HTTP | Redis admin UI |
 | `infra-minio-1` | **9000** / **9001** | 9000 / 9001 | S3 / Console | オブジェクトストレージ + UI |
 
+### 本社共有キャッシュ (Excubitor 管理 native exe)
+
+| Service | Host port | プロトコル | 用途 |
+|---------|-----------|-----------|------|
+| `garnet` (GarnetServer.exe) | **6380** (127.0.0.1 のみ) | RESP | TTL 付きキャッシュ専用。`GARNET_URL` で配布。6379 は `mac-db-tunnel` の Redis 転送が使う ([spec](spec/feature/garnet-shared-cache.md)) |
+
 ---
 
 ## サービス本体 (個別 docker-compose)

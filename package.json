@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test \"scripts/garnet/test/*.test.mjs\"",
+    "garnet:setup": "node scripts/garnet/setup.mjs",
     "migrate": "node migrate.mjs",
     "migrate:status": "node migrate.mjs --status",
     "migrate:dry-run": "node migrate.mjs --dry-run",

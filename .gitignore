@@ -1,2 +1,5 @@
 node_modules
 .env.mac-tunnel
+# Garnet binaries fetched by scripts/garnet/setup.mjs
+.local/
+.contracts-logs/

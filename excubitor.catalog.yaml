@@ -30,3 +30,42 @@ services:
       type: tcp
       interval_sec: 30
       grace_period_sec: 15
+
+  # 本社の共有キャッシュ (Garnet, RESP 互換)。 用途は TTL 付きキャッシュのみ。
+  # 版固定・キー規約・無認証の判断は spec/feature/garnet-shared-cache.md。
+  # バイナリは `node scripts/garnet/setup.mjs` で .local/ に展開する (git 管理外)。
+  # 6379 は mac-db-tunnel が Mac の Redis 転送に使うため、 garnet は 6380 に置く。
+  - code: garnet
+    name: Garnet (HQ shared cache)
+    tier: infra
+    project_code: infra
+    component: cache
+    port: 6380
+    repo: LUDIARS/Infra
+    runtime: app
+    app_kind: native
+    exec: ${ARS_ROOT}/infra/.local/garnet/2.1.8/net8.0/GarnetServer.exe
+    # 第 1 段階は loopback のみ・無認証 (Excubitor の exec_args に Vault 値を展開できないため)。
+    # -m の既定は 16g なので必ず小さく固定する。
+    exec_args:
+      - --bind
+      - 127.0.0.1
+      - --port
+      - "6380"
+      - -m
+      - 256m
+      - -i
+      - 64m
+      - --logger-level
+      - Warning
+    process_match: GarnetServer.exe
+    autostart: true
+    restart_policy: on-failure
+    max_restart: 5
+    health:
+      type: tcp
+      interval_sec: 30
+      grace_period_sec: 10
+    # REDIS_URL (Mac の Redis) と名前を分ける。 localhost は ::1 に解決され得るので IP で書く。
+    provides:
+      GARNET_URL: redis://127.0.0.1:6380

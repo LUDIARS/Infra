@@ -5,8 +5,8 @@
   "templateRules": [],
   "membership": [
     { "pathPattern": "(^|/)scripts/garnet/(?:.*/)?[^/]+$" },
-    { "pathPattern": "(^|/)spec/feature/garnet-[^/]+\.md$" },
-    { "pathPattern": "(^|/)contracts/[^/]+\.contract\.mjs$" },
-    { "pathPattern": "(^|/)augur\.(?:contracts|inject)\.json$" }
+    { "pathPattern": "(^|/)spec/feature/garnet-[^/]+\\.md$" },
+    { "pathPattern": "(^|/)contracts/[^/]+\\.contract\\.mjs$" },
+    { "pathPattern": "(^|/)augur\\.(?:contracts|inject)\\.json$" }
   ]
 }

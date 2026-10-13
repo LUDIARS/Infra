@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "contractsDir": "contracts",
+  "importFrom": "./contract-runtime.mjs",
+  "contracts": [
+    {
+      "id": "C-1",
+      "criterion": "C-1 ensureGarnetInstalled(options): 版とハッシュが一致する展開済み marker があれば取得せず skipped を返し、無ければ取得・検証・展開して installed を返す",
+      "symbol": "ensureGarnetInstalled",
+      "file": "scripts/garnet/install.mjs",
+      "module": "contracts/ensure-garnet-installed.contract.mjs",
+      "mode": "observe",
+      "sample": 1
+    },
+    {
+      "id": "C-2",
+      "criterion": "C-2 checkArchiveDigest(file, expected): 取得した zip の SHA-256 を固定値と比べ、不一致なら matches=false を返す (installer はここで展開せず停止する)",
+      "symbol": "checkArchiveDigest",
+      "file": "scripts/garnet/digest.mjs",
+      "module": "contracts/check-archive-digest.contract.mjs",
+      "mode": "observe",
+      "sample": 1
+    }
+  ]
+}

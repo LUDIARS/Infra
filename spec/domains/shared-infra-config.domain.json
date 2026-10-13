@@ -4,14 +4,14 @@
   "presetRules": [],
   "templateRules": [],
   "membership": [
-    { "pathPattern": "(^|/)excubitor\.catalog\.yaml$" },
-    { "pathPattern": "(^|/)docker-compose[^/]*\.yaml$" },
-    { "pathPattern": "(^|/)(?:migrate\.(?:mjs|sh)|drizzle\.config\.ts|init-databases\.sql|services\.yaml)$" },
+    { "pathPattern": "(^|/)excubitor\\.catalog\\.yaml$" },
+    { "pathPattern": "(^|/)docker-compose[^/]*\\.yaml$" },
+    { "pathPattern": "(^|/)(?:migrate\\.(?:mjs|sh)|drizzle\\.config\\.ts|init-databases\\.sql|services\\.yaml)$" },
     { "pathPattern": "(^|/)schema/(?:.*/)?[^/]+$" },
     { "pathPattern": "(^|/)scripts/mac-migration/(?:.*/)?[^/]+$" },
-    { "pathPattern": "(^|/)(?:README|PORT-MAP|MAC-MIGRATION)\.md$" },
+    { "pathPattern": "(^|/)(?:README|PORT-MAP|MAC-MIGRATION)\\.md$" },
     { "pathPattern": "(^|/)review/(?:.*/)?[^/]+$" },
-    { "pathPattern": "(^|/)spec/domains/[^/]+\.json$" },
-    { "pathPattern": "(^|/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|tsconfig\.json|\.gitignore|\.revisor-version|LICENSE)$" }
+    { "pathPattern": "(^|/)spec/domains/[^/]+\\.json$" },
+    { "pathPattern": "(^|/)(?:package\\.json|package-lock\\.json|pnpm-lock\\.yaml|tsconfig\\.json|\\.gitignore|\\.revisor-version|LICENSE)$" }
   ]
 }

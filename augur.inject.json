@@ -1,0 +1,6 @@
+{
+  "service": "infra",
+  "include": ["scripts/garnet/*.mjs"],
+  "exclude": ["scripts/garnet/contract-runtime.mjs", "scripts/garnet/test/**"],
+  "importFrom": "./contract-runtime.mjs"
+}
