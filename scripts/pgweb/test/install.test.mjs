@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { ensurePgwebInstalled, pgwebInstallDir } from "../install.mjs";
-import { BOOKMARKS_DIR, INSTALL_MARKER, PGWEB_RELEASE } from "../pgweb-release.mjs";
+import { INSTALL_MARKER, PGWEB_RELEASE } from "../pgweb-release.mjs";
 
 const ARCHIVE_BYTES = "fake pgweb zip";
 const sha = (text) => createHash("sha256").update(text).digest("hex");
@@ -37,44 +37,30 @@ async function exists(path) {
 
 describe("ensurePgwebInstalled", () => {
   let root;
-  let bookmarks;
-  beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "pgweb-setup-"));
-    bookmarks = join(root, "shipped-bookmarks");
-    await mkdir(bookmarks);
-    await writeFile(join(bookmarks, "shared.toml"), "host = \"127.0.0.1\"\n");
-  });
+  beforeEach(async () => { root = await mkdtemp(join(tmpdir(), "pgweb-setup-")); });
   afterEach(async () => { await rm(root, { recursive: true, force: true }); });
 
-  it("downloads, verifies, renames to pgweb.exe and places the bookmarks", async () => {
+  it("downloads, verifies and renames the binary to pgweb.exe", async () => {
     const calls = [];
     const release = fakeRelease();
-    const result = await ensurePgwebInstalled({
-      root, release, bookmarks, download: fakeDownload(calls), extract: fakeExtract,
-    });
+    const result = await ensurePgwebInstalled({ root, release, download: fakeDownload(calls), extract: fakeExtract });
     const installDir = pgwebInstallDir(root, release.version);
     assert.equal(result.status, "installed");
     assert.equal(result.executable, join(installDir, "pgweb.exe"));
     assert.deepEqual(calls, [release.url]);
     assert.ok(await exists(result.executable));
     assert.equal(await exists(join(installDir, release.archiveEntry)), false);
-    assert.ok(await exists(join(installDir, BOOKMARKS_DIR, "shared.toml")));
     const marker = JSON.parse(await readFile(join(installDir, INSTALL_MARKER), "utf8"));
     assert.equal(marker.sha256, release.sha256);
   });
 
-  it("skips the download when installed, but refreshes the bookmarks", async () => {
+  it("does nothing when the same version is already extracted", async () => {
     const release = fakeRelease();
-    await ensurePgwebInstalled({ root, release, bookmarks, download: fakeDownload([]), extract: fakeExtract });
-    await writeFile(join(bookmarks, "shared.toml"), "host = \"changed\"\n");
+    await ensurePgwebInstalled({ root, release, download: fakeDownload([]), extract: fakeExtract });
     const calls = [];
-    const result = await ensurePgwebInstalled({
-      root, release, bookmarks, download: fakeDownload(calls), extract: fakeExtract,
-    });
+    const result = await ensurePgwebInstalled({ root, release, download: fakeDownload(calls), extract: fakeExtract });
     assert.equal(result.status, "skipped");
     assert.deepEqual(calls, []);
-    const copied = await readFile(join(pgwebInstallDir(root, release.version), BOOKMARKS_DIR, "shared.toml"), "utf8");
-    assert.match(copied, /changed/);
   });
 
   it("stops on a SHA-256 mismatch without extracting", async () => {
@@ -82,7 +68,7 @@ describe("ensurePgwebInstalled", () => {
     let extracted = false;
     await assert.rejects(
       ensurePgwebInstalled({
-        root, release, bookmarks, download: fakeDownload([]),
+        root, release, download: fakeDownload([]),
         extract: async () => { extracted = true; },
       }),
       /SHA-256 mismatch/,
@@ -94,7 +80,7 @@ describe("ensurePgwebInstalled", () => {
   it("stops when the archive lacks the expected binary", async () => {
     const release = fakeRelease();
     await assert.rejects(
-      ensurePgwebInstalled({ root, release, bookmarks, download: fakeDownload([]), extract: async () => {} }),
+      ensurePgwebInstalled({ root, release, download: fakeDownload([]), extract: async () => {} }),
       /not found/,
     );
     assert.equal(await exists(pgwebInstallDir(root, release.version)), false);
@@ -110,13 +96,27 @@ describe("PGWEB_RELEASE", () => {
   });
 });
 
-describe("shipped bookmark", () => {
-  it("points at the tunnel, is read-only and carries no password", async () => {
+describe("catalog entry", () => {
+  async function pgwebBlock() {
     const here = dirname(fileURLToPath(import.meta.url));
-    const text = await readFile(join(here, "..", BOOKMARKS_DIR, "shared-postgres.toml"), "utf8");
-    assert.match(text, /^host = "127\.0\.0\.1"$/m);
-    assert.match(text, /^port = 5432$/m);
-    assert.match(text, /^readonly = true$/m);
-    assert.doesNotMatch(text, /^password\s*=/im);
+    const text = await readFile(join(here, "..", "..", "..", "excubitor.catalog.yaml"), "utf8");
+    const start = text.indexOf("- code: pgweb");
+    assert.ok(start >= 0, "catalog has the pgweb entry");
+    const next = text.indexOf("\n  - code:", start + 1);
+    return text.slice(start, next < 0 ? undefined : next);
+  }
+
+  it("stays read-only, loopback-only and without SSH", async () => {
+    const block = await pgwebBlock();
+    assert.match(block, /- --readonly$/m);
+    assert.match(block, /- --bind=127\.0\.0\.1$/m);
+    assert.match(block, /- --no-ssh$/m);
+  });
+
+  it("never carries the connection string; it comes from Vault (PGWEB_DATABASE_URL)", async () => {
+    const block = await pgwebBlock();
+    assert.doesNotMatch(block, /postgres(?:ql)?:\/\//i);
+    assert.doesNotMatch(block, /--url\b/);
+    assert.doesNotMatch(block, /--sessions\b/);
   });
 });

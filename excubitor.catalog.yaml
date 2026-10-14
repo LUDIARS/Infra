@@ -70,10 +70,11 @@ services:
     provides:
       GARNET_URL: redis://127.0.0.1:6380
 
-  # 本社で共有 Postgres (Mac) を見るための Web ビューア (pgweb)。 接続は mac-db-tunnel の 127.0.0.1:5432。
+  # 本社で共有 Postgres (AWS) を見るための Web ビューア (pgweb)。
   # 版固定・読み取り専用・loopback の判断は spec/feature/pgweb-hq-viewer.md。
   # バイナリは `node scripts/pgweb/setup.mjs` で .local/ に展開する (git 管理外)。
-  # 接続先はブックマーク (scripts/pgweb/bookmarks/、 setup が bookmarks/ へ写す) で選ぶ。 cwd は exec の dir。
+  # 接続文字列は Vault の PGWEB_DATABASE_URL (pgweb が自分で読む env) で渡す。 catalog には書かない。
+  # DB は画面の切り替えで選ぶ。
   - code: pgweb
     name: pgweb (HQ Postgres viewer)
     tier: infra
@@ -87,9 +88,7 @@ services:
     exec_args:
       - --bind=127.0.0.1
       - --listen=8081
-      - --sessions
       - --readonly
-      - --bookmarks-dir=bookmarks
       - --no-ssh
       - --skip-open
     process_match: pgweb.exe

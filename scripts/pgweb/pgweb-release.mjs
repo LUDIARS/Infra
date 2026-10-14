@@ -13,6 +13,3 @@ export const PGWEB_RELEASE = Object.freeze({
 
 /** Marker written after a verified extraction; its presence makes setup a no-op. */
 export const INSTALL_MARKER = ".pgweb-install.json";
-
-/** Bookmarks shipped with the repo, copied next to the binary on every setup. */
-export const BOOKMARKS_DIR = "bookmarks";

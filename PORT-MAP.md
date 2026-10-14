@@ -38,7 +38,7 @@ LUDIARS 全サービスが共通で利用する基盤。常時稼働。
 | Service | Host port | プロトコル | 用途 |
 |---------|-----------|-----------|------|
 | `garnet` (GarnetServer.exe) | **6380** (127.0.0.1 のみ) | RESP | TTL 付きキャッシュ専用。`GARNET_URL` で配布。6379 は `mac-db-tunnel` の Redis 転送が使う ([spec](spec/feature/garnet-shared-cache.md)) |
-| `pgweb` (pgweb.exe) | **8081** (127.0.0.1 のみ) | HTTP | 共有 Postgres の読み取り専用ビューア。接続は `mac-db-tunnel` の 5432 ([spec](spec/feature/pgweb-hq-viewer.md)) |
+| `pgweb` (pgweb.exe) | **8081** (127.0.0.1 のみ) | HTTP | 共有 Postgres (AWS) の読み取り専用ビューア。接続文字列は Vault の `PGWEB_DATABASE_URL` ([spec](spec/feature/pgweb-hq-viewer.md)) |
 
 ---
 

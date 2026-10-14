@@ -5,21 +5,23 @@
 
 ## なぜこの形か
 
-共有 Postgres は Mac の docker にあり、 そこの pgadmin / pgweb は Mac 側でしか開けない。
 本社 Windows には docker が無いので、 Garnet と同じく native exe を Excubitor に管理させる
 ([garnet-shared-cache.md](garnet-shared-cache.md))。 pgweb は Go の単体バイナリで依存が無い。
 
 ## 接続
 
-- 接続先は `mac-db-tunnel` が転送する `127.0.0.1:5432` (Mac の共有 Postgres)。
-- `--sessions` で起動し、 接続はブックマーク `shared-postgres` (scripts/pgweb/bookmarks/) を選ぶ。
-  DB は画面で切り替える (ブックマークの既定は `postgres`)。
-- ブックマークにパスワードを書かない。 今の共有 Postgres は tailnet 内からの接続を `trust` で通す。
-  パスワード照合を入れたら、 ブックマークには `PasswordVar` で env 名だけを書き、 値は Vault から渡す。
+- 接続先は AWS の共有 Postgres (2026-10-15 neco「いまは AWS にあるので AWS に向けて」)。
+  最初の版は Mac への `mac-db-tunnel` を使ったが、 共有 DB が AWS へ移ったので外した。
+- 接続文字列は Excubitor Vault のエントリ `PGWEB_DATABASE_URL` に置き、 サービス `pgweb` に
+  bind して起動時に env として渡す。 pgweb はこの env を自分で読む。 catalog・リポには書かない
+  (ホスト名とパスワードを含むため)。 AWS への接続なので `sslmode=require` 以上を付ける。
+- 1 本の接続で起動し、 DB は画面の切り替えで選ぶ (`--sessions` は使わない)。
+- 接続文字列のロールは読み取りだけの権限が望ましい。 `--readonly` は pgweb 側の防御で、 DB 側の権限の代わりにはしない。
+- `PGWEB_DATABASE_URL` が無い・繋がらないと pgweb は起動直後に終わる。 Excubitor の起動失敗として見える。
 
 ## 見るだけ・本社の中だけ
 
-- `--readonly`: 接続を読み取り専用トランザクションにする。 ブックマークにも `readonly = true`。
+- `--readonly`: 接続を読み取り専用トランザクションにする。
   書き込みはサービスの migration / 管理画面で行い、 このビューアからは行わない。
 - `--bind=127.0.0.1`: 本社 PC からだけ開ける。 ほかの拠点や端末へ公開するときは、 認証
   (Cloudflare Access など) を前に置いてから bind を広げる。 無認証のまま広げない。
@@ -42,10 +44,10 @@ node scripts/pgweb/setup.mjs   # または npm run pgweb:setup
 ```
 
 - GitHub Releases から取得 → SHA-256 検証 → `.local/pgweb/0.17.0/` へ展開 (`.local/` は git 管理外)。
-- 冪等: 版とハッシュが一致する marker (`.pgweb-install.json`) があれば取得しない。 ブックマークは毎回写し直す。
+- 冪等: 版とハッシュが一致する marker (`.pgweb-install.json`) があれば取得しない。
 - ハッシュ不一致なら展開せず非 0 で終わる。 取得・展開は staging で行う。
 - 起動は Excubitor (本体 checkout `E:/Document/Ars/infra` の catalog 断片) が行う。 worktree から起動しない。
 
 ## ポート
 
-8081 (127.0.0.1 のみ)。 Mac の docker の pgweb も 8081 だが別ホストなので衝突しない。
+8081 (127.0.0.1 のみ)。

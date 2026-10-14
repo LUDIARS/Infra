@@ -1,12 +1,9 @@
-import { access, cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { checkArchiveDigest } from "../garnet/digest.mjs";
 import { downloadFile } from "../garnet/download.mjs";
 import { extractZip } from "../garnet/extract.mjs";
-import { BOOKMARKS_DIR, INSTALL_MARKER, PGWEB_RELEASE } from "./pgweb-release.mjs";
-
-const SHIPPED_BOOKMARKS = join(dirname(fileURLToPath(import.meta.url)), BOOKMARKS_DIR);
+import { INSTALL_MARKER, PGWEB_RELEASE } from "./pgweb-release.mjs";
 
 export function pgwebInstallDir(root, version = PGWEB_RELEASE.version) {
   return join(root, ".local", "pgweb", version);
@@ -32,31 +29,21 @@ async function isInstalled(installDir, release) {
   }
 }
 
-/** Bookmarks are config, not part of the verified binary: refresh them on every run. */
-async function syncBookmarks(installDir, source) {
-  const dest = join(installDir, BOOKMARKS_DIR);
-  await rm(dest, { recursive: true, force: true });
-  await cp(source, dest, { recursive: true });
-}
-
 /**
  * Idempotently installs the pinned pgweb release under <root>/.local/pgweb/<version>/.
  * Download and extraction happen in a staging dir, so a failed or tampered
  * download never leaves a half-installed tree in the final location.
+ * The connection string is not installed here: Excubitor injects PGWEB_DATABASE_URL from Vault.
  */
 export async function ensurePgwebInstalled({
   root,
   release = PGWEB_RELEASE,
-  bookmarks = SHIPPED_BOOKMARKS,
   download = downloadFile,
   extract = extractZip,
 }) {
   const installDir = pgwebInstallDir(root, release.version);
   const executable = join(installDir, release.executable);
-  if (await isInstalled(installDir, release)) {
-    await syncBookmarks(installDir, bookmarks);
-    return { status: "skipped", executable };
-  }
+  if (await isInstalled(installDir, release)) return { status: "skipped", executable };
 
   const parent = join(root, ".local", "pgweb");
   await mkdir(parent, { recursive: true });
@@ -86,7 +73,6 @@ export async function ensurePgwebInstalled({
       sha256: release.sha256,
       installedAt: new Date().toISOString(),
     }, null, 2)}\n`, "utf8");
-    await syncBookmarks(installDir, bookmarks);
     return { status: "installed", executable };
   } finally {
     await rm(stage, { recursive: true, force: true });
