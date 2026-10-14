@@ -5,7 +5,7 @@
 
 ## なぜこの形か
 
-共有 Postgres は Mac (GROMAC) の docker にあり、 そこの pgadmin / pgweb は Mac 側でしか開けない。
+共有 Postgres は Mac の docker にあり、 そこの pgadmin / pgweb は Mac 側でしか開けない。
 本社 Windows には docker が無いので、 Garnet と同じく native exe を Excubitor に管理させる
 ([garnet-shared-cache.md](garnet-shared-cache.md))。 pgweb は Go の単体バイナリで依存が無い。
 
