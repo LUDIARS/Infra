@@ -69,3 +69,34 @@ services:
     # REDIS_URL (Mac の Redis) と名前を分ける。 localhost は ::1 に解決され得るので IP で書く。
     provides:
       GARNET_URL: redis://127.0.0.1:6380
+
+  # 本社で共有 Postgres (Mac) を見るための Web ビューア (pgweb)。 接続は mac-db-tunnel の 127.0.0.1:5432。
+  # 版固定・読み取り専用・loopback の判断は spec/feature/pgweb-hq-viewer.md。
+  # バイナリは `node scripts/pgweb/setup.mjs` で .local/ に展開する (git 管理外)。
+  # 接続先はブックマーク (scripts/pgweb/bookmarks/、 setup が bookmarks/ へ写す) で選ぶ。 cwd は exec の dir。
+  - code: pgweb
+    name: pgweb (HQ Postgres viewer)
+    tier: infra
+    project_code: infra
+    component: db-viewer
+    port: 8081
+    repo: LUDIARS/Infra
+    runtime: app
+    app_kind: native
+    exec: ${ARS_ROOT}/infra/.local/pgweb/0.17.0/pgweb.exe
+    exec_args:
+      - --bind=127.0.0.1
+      - --listen=8081
+      - --sessions
+      - --readonly
+      - --bookmarks-dir=bookmarks
+      - --no-ssh
+      - --skip-open
+    process_match: pgweb.exe
+    autostart: true
+    restart_policy: on-failure
+    max_restart: 5
+    health:
+      type: tcp
+      interval_sec: 30
+      grace_period_sec: 10

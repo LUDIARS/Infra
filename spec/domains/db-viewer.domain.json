@@ -1,0 +1,10 @@
+{
+  "name": "db-viewer",
+  "description": "本社の Postgres ビューア pgweb の取得・検証・展開 (版と SHA-256 の固定、 冪等な setup) と接続ブックマーク、 運用規約 (読み取り専用、 loopback、 パスワードを置かない)。 起動は Excubitor が行う。 仕様: spec/feature/pgweb-hq-viewer.md。",
+  "presetRules": [],
+  "templateRules": [],
+  "membership": [
+    { "pathPattern": "(^|/)scripts/pgweb/(?:.*/)?[^/]+$" },
+    { "pathPattern": "(^|/)spec/feature/pgweb-[^/]+\\.md$" }
+  ]
+}

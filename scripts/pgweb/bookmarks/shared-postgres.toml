@@ -1,0 +1,8 @@
+# 共有 Postgres (Mac) へ mac-db-tunnel 経由で繋ぐ。DB は画面の切り替えで選ぶ。
+# パスワードは置かない (書くなら PasswordVar で env 名だけ。仕様: spec/feature/pgweb-hq-viewer.md)。
+host = "127.0.0.1"
+port = 5432
+user = "ludiars"
+database = "postgres"
+sslmode = "disable"
+readonly = true
