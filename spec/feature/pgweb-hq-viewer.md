@@ -14,7 +14,12 @@
   最初の版は Mac への `mac-db-tunnel` を使ったが、 共有 DB が AWS へ移ったので外した。
 - 接続文字列は Excubitor Vault のエントリ `PGWEB_DATABASE_URL` に置き、 サービス `pgweb` に
   bind して起動時に env として渡す。 pgweb はこの env を自分で読む。 catalog・リポには書かない
-  (ホスト名とパスワードを含むため)。 AWS への接続なので `sslmode=require` 以上を付ける。
+  (ホスト名とパスワードを含むため)。
+- 経路は Tailscale (AWS 拠点の tailnet アドレス)。 Tailscale (WireGuard) が経路を暗号化し、 拠点の
+  Postgres コンテナは TLS を有効にしていないので `sslmode=disable` で繋ぐ。 tailnet を通らない経路
+  (公開アドレスなど) で繋ぐときは `sslmode=require` 以上を付ける。
+- 値は AWS 拠点の Postgres コンテナの資格情報から組み立てる。 組み立てと保存は値を表示しない
+  ローカルのスクリプト (git 管理外) で人間が行う。
 - 1 本の接続で起動し、 DB は画面の切り替えで選ぶ (`--sessions` は使わない)。
 - 接続文字列のロールは読み取りだけの権限が望ましい。 `--readonly` は pgweb 側の防御で、 DB 側の権限の代わりにはしない。
 - `PGWEB_DATABASE_URL` が無い・繋がらないと pgweb は起動直後に終わる。 Excubitor の起動失敗として見える。
@@ -23,8 +28,12 @@
 
 - `--readonly`: 接続を読み取り専用トランザクションにする。
   書き込みはサービスの migration / 管理画面で行い、 このビューアからは行わない。
-- `--bind=127.0.0.1`: 本社 PC からだけ開ける。 ほかの拠点や端末へ公開するときは、 認証
-  (Cloudflare Access など) を前に置いてから bind を広げる。 無認証のまま広げない。
+- `--bind=127.0.0.1`: 待ち受けは本社 PC の loopback だけ。 bind は広げない。
+- 外から開くときは Cloudflare Tunnel の公開ホスト `pgweb.<DOMAIN_ROOT>` を使う (2026-10-15 neco「CF で pgweb 見れるように」)。
+  Tunnel の route は Access 必須で、 Access アプリのポリシーは本人だけを許すもの (ALLOW ME)。
+  route の origin は本社の `127.0.0.1:8081` (cloudflared が本社で動くので loopback のまま届く)。
+  設定は Excubitor の CF ブローカー (Castra command-runner の `cf:access-app` / `cf:route` / `cf:dns`) で行った。
+  許す人を増やすときは Access のポリシーを変える。 Access を外して公開しない。
 - `--no-ssh`: 画面から SSH トンネル接続を作らせない。
 - `--skip-open`: 起動のたびに本社のブラウザを開かない。
 
