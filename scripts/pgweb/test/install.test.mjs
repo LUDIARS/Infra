@@ -113,10 +113,12 @@ describe("catalog entry", () => {
     assert.match(block, /- --no-ssh$/m);
   });
 
-  it("never carries the connection string; it comes from Vault (PGWEB_DATABASE_URL)", async () => {
+  it("does not preconfigure or persist connection info; each browser session enters it on the form", async () => {
     const block = await pgwebBlock();
     assert.doesNotMatch(block, /postgres(?:ql)?:\/\//i);
-    assert.doesNotMatch(block, /--url\b/);
-    assert.doesNotMatch(block, /--sessions\b/);
+    assert.doesNotMatch(block, /(?:PGWEB_)?DATABASE_URL|PG(?:HOST|USER|PASSWORD|DATABASE)/);
+    assert.doesNotMatch(block, /--(?:url|host|user|pass(?:word)?|db|database)\b/);
+    assert.doesNotMatch(block, /--bookmarks-dir\b/);
+    assert.match(block, /- --sessions$/m);
   });
 });

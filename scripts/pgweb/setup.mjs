@@ -2,7 +2,7 @@
 /**
  * pgweb (HQ Postgres viewer) setup: fetch the pinned release, verify its SHA-256,
  * and extract it to .local/pgweb/<version>/. Safe to re-run; an existing verified install is left untouched.
- * The connection string comes from Vault (PGWEB_DATABASE_URL), not from setup.
+ * No connection info is configured or persisted: the viewer enters it on pgweb's form each time.
  * The binary is never committed. Starting pgweb is Excubitor's job (excubitor.catalog.yaml code: pgweb).
  */
 import { dirname, resolve } from "node:path";

@@ -33,7 +33,7 @@ async function isInstalled(installDir, release) {
  * Idempotently installs the pinned pgweb release under <root>/.local/pgweb/<version>/.
  * Download and extraction happen in a staging dir, so a failed or tampered
  * download never leaves a half-installed tree in the final location.
- * The connection string is not installed here: Excubitor injects PGWEB_DATABASE_URL from Vault.
+ * No connection info is configured or persisted here: the viewer enters it on pgweb's form each time.
  */
 export async function ensurePgwebInstalled({
   root,

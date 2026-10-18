@@ -12,17 +12,15 @@
 
 - 接続先は AWS の共有 Postgres (2026-10-15 neco「いまは AWS にあるので AWS に向けて」)。
   最初の版は Mac への `mac-db-tunnel` を使ったが、 共有 DB が AWS へ移ったので外した。
-- 接続文字列は Excubitor Vault のエントリ `PGWEB_DATABASE_URL` に置き、 サービス `pgweb` に
-  bind して起動時に env として渡す。 pgweb はこの env を自分で読む。 catalog・リポには書かない
-  (ホスト名とパスワードを含むため)。
+- **接続情報は永続保存しない** (2026-10-15 neco: DB のパスワードはマスターに近いので URL で持たない)。
+  pgweb は接続なしで起動し、 開いた人が画面のフォームでホスト・ユーザー・パスワード・DB を毎回入れる。
+  Vault・catalog・ブックマーク・リポには置かない。
+- `--sessions` で起動し、 接続はブラウザのセッションごとに分ける。 ある人が繋いだ接続を別のブラウザが使えない。
+  接続を維持する間は pgweb が資格情報を保持するが、セッション終了後に再利用する設定としては保存しない。
 - 経路は Tailscale (AWS 拠点の tailnet アドレス)。 Tailscale (WireGuard) が経路を暗号化し、 拠点の
-  Postgres コンテナは TLS を有効にしていないので `sslmode=disable` で繋ぐ。 tailnet を通らない経路
-  (公開アドレスなど) で繋ぐときは `sslmode=require` 以上を付ける。
-- 値は AWS 拠点の Postgres コンテナの資格情報から組み立てる。 組み立てと保存は値を表示しない
-  ローカルのスクリプト (git 管理外) で人間が行う。
-- 1 本の接続で起動し、 DB は画面の切り替えで選ぶ (`--sessions` は使わない)。
-- 接続文字列のロールは読み取りだけの権限が望ましい。 `--readonly` は pgweb 側の防御で、 DB 側の権限の代わりにはしない。
-- `PGWEB_DATABASE_URL` が無い・繋がらないと pgweb は起動直後に終わる。 Excubitor の起動失敗として見える。
+  Postgres コンテナは TLS を有効にしていないので SSL は `disable` で繋ぐ。 tailnet を通らない経路
+  (公開アドレスなど) で繋ぐときは `require` 以上を選ぶ。
+- 入れるロールは読み取りだけの権限が望ましい。 `--readonly` は pgweb 側の防御で、 DB 側の権限の代わりにはしない。
 
 ## 見るだけ・本社の中だけ
 
